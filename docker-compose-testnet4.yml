@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+    bitcoin:
+        image: bitcoin/bitcoin:latest
+        container_name: bitcoin-node
+        ports:
+            - "48332:48332"
+            - "48333:48333"
+        volumes:
+            - bitcoin_data:/home/bitcoin/.bitcoin
+        command: ["-printtoconsole", "-testnet4", "-rpcbind=0.0.0.0", "-rpcallowip=172.18.0.0/16", "-txindex=1"]
+
+    electrs:
+      image: 4324363/electrs
+      container_name: electrs1
+      user: "root"
+      command: ["/usr/bin/electrs", "--network=testnet4"] # Already set in testnet mode
+      ports:
+        - "50001:50001" # For the electrs API on mainnet
+        - "40001:40001" # For the electrs RPC API on testnet4
+      volumes:
+        - electrs_data:/data
+        - bitcoin_data:/home/bitcoin/.bitcoin:ro
+      environment:
+          - ELECTRS_DAEMON_DIR=/home/bitcoin/.bitcoin/ # Specify the directory since running in testnet mode we will have a different dir structure
+          - ELECTRS_DAEMON_RPC_ADDR=bitcoin:48332 # Need to match the port as well
+          - ELECTRS_DAEMON_P2P_ADDR=bitcoin:48333 # Need to match the port as well
+          - ELECTRS_DAEMON_RPC_COOKIE=/home/bitcoin/.bitcoin/testnet4/.cookie # Need to match the cookie file
+          - ELECTRS_DB_DIR=/data/db
+          - ELECTRS_ELECTRUM_RPC_ADDR=electrs:40001
+      depends_on:
+        - bitcoin
+
+    web:
+      environment:
+        FRONTEND_HTTP_PORT: "8080"
+        BACKEND_MAINNET_HTTP_HOST: "api"
+      image: mempool/frontend:latest
+      user: "1000:1000"
+      restart: on-failure
+      stop_grace_period: 1m
+      command: "./wait-for db:3306 --timeout=720 -- nginx -g 'daemon off;'"
+      ports:
+        - 80:8080
+
+    api:
+      environment:
+        MEMPOOL_BACKEND: "electrum"
+        ELECTRUM_HOST: electrs
+        ELECTRUM_PORT: "40001"
+        ELECTRUM_TLS: "false"
+        CORE_RPC_HOST: bitcoin
+        CORE_RPC_PORT: "48332"
+        CORE_RPC_COOKIE: true
+        CORE_RPC_COOKIE_PATH: "/home/bitcoin/.bitcoin/testnet4/.cookie"
+        DATABASE_ENABLED: "true"
+        DATABASE_HOST: "db"
+        DATABASE_DATABASE: "mempool"
+        DATABASE_USERNAME: "mempool"
+        DATABASE_PASSWORD: "mempool"
+        STATISTICS_ENABLED: "true"
+      image: mempool/backend:latest
+      user: root
+      restart: on-failure
+      stop_grace_period: 1m
+      command: "./wait-for-it.sh db:3306 --timeout=720 --strict -- ./start.sh"
+      volumes:
+        - ./data:/backend/cache
+        - bitcoin_data:/home/bitcoin/.bitcoin:ro
+
+
+    db:
+      environment:
+        MYSQL_DATABASE: "mempool"
+        MYSQL_USER: "mempool"
+        MYSQL_PASSWORD: "mempool"
+        MYSQL_ROOT_PASSWORD: "admin"
+      image: mariadb:10.5.21
+      user: "1000:1000"
+      restart: on-failure
+      stop_grace_period: 1m
+      volumes:
+        - ./mysql/data:/var/lib/mysql
+
+volumes:
+    bitcoin_data:
+    electrs_data:
