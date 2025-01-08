@@ -3,17 +3,14 @@ version: '3.8'
 services:
     bitcoin:
         image: bitcoin/bitcoin:latest
-        container_name: bitcoin-node
-        ports:
-            - "48332:48332"
-            - "48333:48333"
+        container_name: bitcoind
         volumes:
             - bitcoin_data:/home/bitcoin/.bitcoin
-        command: ["-printtoconsole", "-testnet4", "-rpcbind=0.0.0.0", "-rpcallowip=172.18.0.0/16", "-txindex=1"]
+        command: ["-printtoconsole", "-testnet4", "-rpcbind=0.0.0.0", "-rpcallowip=172.0.0.0/8", "-txindex=1"]
 
     electrs:
       image: 4324363/electrs
-      container_name: electrs1
+      container_name: electrs
       user: "root"
       command: ["/usr/bin/electrs", "--network=testnet4"] # Already set in testnet mode
       ports:
@@ -37,12 +34,13 @@ services:
         FRONTEND_HTTP_PORT: "8080"
         BACKEND_MAINNET_HTTP_HOST: "api"
       image: mempool/frontend:latest
+      container_name: mempool-frontend
       user: "1000:1000"
       restart: on-failure
       stop_grace_period: 1m
       command: "./wait-for db:3306 --timeout=720 -- nginx -g 'daemon off;'"
       ports:
-        - 80:8080
+        - "80:8080"
 
     api:
       environment:
@@ -61,12 +59,13 @@ services:
         DATABASE_PASSWORD: "mempool"
         STATISTICS_ENABLED: "true"
       image: mempool/backend:latest
-      user: root
+      container_name: mempool-backend
+      user: "root"
       restart: on-failure
       stop_grace_period: 1m
       command: "./wait-for-it.sh db:3306 --timeout=720 --strict -- ./start.sh"
       volumes:
-        - ./data:/backend/cache
+        - mempool_data:/backend/cache
         - bitcoin_data:/home/bitcoin/.bitcoin:ro
 
 
@@ -77,12 +76,15 @@ services:
         MYSQL_PASSWORD: "mempool"
         MYSQL_ROOT_PASSWORD: "admin"
       image: mariadb:10.5.21
-      user: "1000:1000"
+      container_name: mempool-db
+      user: "root"
       restart: on-failure
       stop_grace_period: 1m
       volumes:
-        - ./mysql/data:/var/lib/mysql
+        - mempool_db:/var/lib/mysql
 
 volumes:
     bitcoin_data:
     electrs_data:
+    mempool_data:
+    mempool_db:
