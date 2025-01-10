@@ -9,12 +9,11 @@ services:
         command: ["-printtoconsole", "-testnet4", "-rpcbind=0.0.0.0", "-rpcallowip=172.0.0.0/8", "-txindex=1"]
 
     electrs:
-      image: 4324363/electrs
+      image: 4324363/electrs:v0.10.8-arm64
       container_name: electrs
       user: "root"
       command: ["/usr/bin/electrs", "--network=testnet4"] # Already set in testnet mode
       ports:
-        - "50001:50001" # For the electrs API on mainnet
         - "40001:40001" # For the electrs RPC API on testnet4
       volumes:
         - electrs_data:/data
