@@ -9,7 +9,7 @@ services:
         command: ["-printtoconsole", "-rpcbind=0.0.0.0", "-rpcallowip=172.0.0.0/8", "-txindex=1"]
 
     electrs:
-      image: 4324363/electrs
+      image: 4324363/electrs:v0.10.8-arm64
       container_name: electrs
       user: "root"
       command: ["/usr/bin/electrs"] 
@@ -48,7 +48,7 @@ services:
         ELECTRUM_TLS: "false"
         CORE_RPC_HOST: bitcoin
         CORE_RPC_PORT: "8332"
-        CORE_RPC_COOKIE: true
+        CORE_RPC_COOKIE: "true"
         CORE_RPC_COOKIE_PATH: "/home/bitcoin/.bitcoin/.cookie"
         DATABASE_ENABLED: "true"
         DATABASE_HOST: "db"
