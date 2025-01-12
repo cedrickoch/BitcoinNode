@@ -15,6 +15,7 @@ services:
       command: ["/usr/bin/electrs", "--network=testnet4"] # Already set in testnet mode
       ports:
         - "40001:40001" # For the electrs RPC API on testnet4
+        - "44224:44224" # Prometheus metrics
       volumes:
         - electrs_data:/data
         - bitcoin_data:/home/bitcoin/.bitcoin:ro
@@ -25,6 +26,7 @@ services:
           - ELECTRS_DAEMON_RPC_COOKIE=/home/bitcoin/.bitcoin/testnet4/.cookie # Need to match the cookie file
           - ELECTRS_DB_DIR=/data/db
           - ELECTRS_ELECTRUM_RPC_ADDR=electrs:40001
+          - ELECTRS_MONITORING_ADDR=electrs:44224
       depends_on:
         - bitcoin
 

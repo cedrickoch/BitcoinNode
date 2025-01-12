@@ -15,6 +15,7 @@ services:
       command: ["/usr/bin/electrs"] 
       ports:
         - "50001:50001" # For the electrs API on mainnet
+        - "4224:4224" # Prometheus metrics
       volumes:
         - electrs_data:/data
         - bitcoin_data:/home/bitcoin/.bitcoin:ro
@@ -25,6 +26,7 @@ services:
           - ELECTRS_DAEMON_RPC_COOKIE=/home/bitcoin/.bitcoin/.cookie # Need to match the cookie file
           - ELECTRS_DB_DIR=/data/db
           - ELECTRS_ELECTRUM_RPC_ADDR=electrs:50001
+          - ELECTRS_MONITORING_ADDR=electrs:4224
       depends_on:
         - bitcoin
 
