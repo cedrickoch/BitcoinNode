@@ -57,7 +57,7 @@ services:
         DATABASE_USERNAME: "mempool"
         DATABASE_PASSWORD: "mempool"
         STATISTICS_ENABLED: "true"
-        MEMPOOL_POLL_RATE_MS: "10000" # Optimized CPU load from 100% to 20%
+        MEMPOOL_POLL_RATE_MS: "20000" # Optimized CPU load from 100% to 20%
       image: mempool/backend:latest
       user: "root"
       restart: on-failure
