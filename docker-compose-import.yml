@@ -1,0 +1,13 @@
+
+services:
+    bitcoin:
+        image: bitcoin/bitcoin:latest
+        container_name: bitcoind
+        volumes:
+            - bitcoin_data:/home/bitcoin/.bitcoin
+            - ./import.sh:/import.sh
+            - ./utxo-snapshot-height-840000.dat:/utxo-snapshot-height-840000.dat
+        command: /import.sh
+
+volumes:
+    bitcoin_data:
