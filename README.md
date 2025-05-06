@@ -30,6 +30,6 @@ Describe how to install the project. Provide step-by-step instructions:
 1. Change to the installation directory ( e.g. cd /home/bitcoin )
 2. Clone the repository ( git clone https://github.com/cedrickoch/BitcoinNode.git )
 3. Change to the BitcoinNode folder ( cd BitcoinNode )
-4. Download the bitcoin data snapshot ( wget https://lopp.net/download/utxo-snapshot-height-840000.dat?ref=blog.lopp.net )
+4. Download the bitcoin data snapshot ( curl https://www.lopp.net/download/utxo-snapshot-height-840000.dat?ref=blog.lopp.net --output utxo-snapshot-height-840000.dat )
 5. Import the bitcoin snapshot. It will take a few minutes ( docker-compose -f docker-compose-import.yml up )
 6. Start the bitcoin node ( docker-compose up )
