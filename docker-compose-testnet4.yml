@@ -2,10 +2,10 @@ version: '3.8'
 
 services:
     bitcoin:
-        image: bitcoin/bitcoin:latest
+        image: lncm/bitcoind:v28.0
         container_name: bitcoind
         volumes:
-            - bitcoin_data:/home/bitcoin/.bitcoin
+            - bitcoin_data:/data/.bitcoin
         command: ["-printtoconsole", "-testnet4", "-rpcbind=0.0.0.0","-rpcport=48332", "-rpcallowip=172.0.0.0/8", "-txindex=1"]
 
     electrs:
@@ -18,12 +18,12 @@ services:
         - "44224:44224" # Prometheus metrics
       volumes:
         - electrs_data:/data
-        - bitcoin_data:/home/bitcoin/.bitcoin:ro
+        - bitcoin_data:/data/.bitcoin:ro
       environment:
-          - ELECTRS_DAEMON_DIR=/home/bitcoin/.bitcoin/ # Specify the directory since running in testnet mode we will have a different dir structure
+          - ELECTRS_DAEMON_DIR=/data/.bitcoin/ # Specify the directory since running in testnet mode we will have a different dir structure
           - ELECTRS_DAEMON_RPC_ADDR=bitcoin:48332 # Need to match the port as well
           - ELECTRS_DAEMON_P2P_ADDR=bitcoin:48333 # Need to match the port as well
-          - ELECTRS_DAEMON_RPC_COOKIE=/home/bitcoin/.bitcoin/testnet4/.cookie # Need to match the cookie file
+          - ELECTRS_DAEMON_RPC_COOKIE=/data/.bitcoin/testnet4/.cookie # Need to match the cookie file
           - ELECTRS_DB_DIR=/data/db
           - ELECTRS_ELECTRUM_RPC_ADDR=electrs:40001
           - ELECTRS_MONITORING_ADDR=electrs:44224
@@ -52,7 +52,7 @@ services:
         CORE_RPC_HOST: bitcoin
         CORE_RPC_PORT: "48332"
         CORE_RPC_COOKIE: true
-        CORE_RPC_COOKIE_PATH: "/home/bitcoin/.bitcoin/testnet4/.cookie"
+        CORE_RPC_COOKIE_PATH: "/data/.bitcoin/testnet4/.cookie"
         DATABASE_ENABLED: "true"
         DATABASE_HOST: "db"
         DATABASE_DATABASE: "mempool"
@@ -67,7 +67,7 @@ services:
       command: "./wait-for-it.sh db:3306 --timeout=720 --strict -- ./start.sh"
       volumes:
         - mempool_data:/backend/cache
-        - bitcoin_data:/home/bitcoin/.bitcoin:ro
+        - bitcoin_data:/data/.bitcoin:ro
 
 
     db:
@@ -83,6 +83,44 @@ services:
       stop_grace_period: 1m
       volumes:
         - mempool_db:/var/lib/mysql
+
+    grafana:
+      image: grafana/grafana:latest
+      restart: always
+      ports:
+        - 3000:3000
+      volumes:
+        - grafana_data:/var/lib/grafana
+
+    prometheus:
+      image: prom/prometheus:latest
+      restart: always
+      ports:
+        - 9090:9090
+      volumes:
+        - prometheus_data:/prometheus
+        - ./prometheus/:/etc/prometheus/
+      command: 
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      depends_on:
+        - node_exporter
+
+    node_exporter:
+      image: prom/node-exporter:latest
+      restart: always
+      volumes:
+        - /proc:/host/proc:ro
+        - /sys:/host/sys:ro
+        - /:/rootfs:ro
+
+    cadvisor:
+      image: gcr.io/cadvisor/cadvisor:latest
+      container_name: cadvisor
+      volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
 
     nginx:
       image: nginx:latest
@@ -100,3 +138,5 @@ volumes:
     electrs_data:
     mempool_data:
     mempool_db:
+    grafana_data:
+    prometheus_data:

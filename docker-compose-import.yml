@@ -1,13 +1,13 @@
 
 services:
     bitcoin:
-        image: bitcoin/bitcoin:latest
+        image: lncm/bitcoind:v28.0
         container_name: bitcoind
         volumes:
-            - bitcoin_data:/home/bitcoin/.bitcoin
+            - bitcoin_data:/data/.bitcoin
             - ./import.sh:/import.sh
             - ./utxo-snapshot-height-840000.dat:/utxo-snapshot-height-840000.dat
-        command: /import.sh
+        entrypoint: /import.sh
 
 volumes:
     bitcoin_data:
