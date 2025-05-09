@@ -4,7 +4,7 @@ LOGFILE=/data/.bitcoin/debug.log
 SEARCH_TEXT="00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048"
 
 echo "Import starting"
-bitcoind -daemon -printtoconsole -rpcbind=0.0.0.0 -rpcallowip=0.0.0.0/0 -txindex=1 -datadir=/data/.bitcoin
+bitcoind -daemon -printtoconsole -rpcbind=0.0.0.0 -rpcallowip=0.0.0.0/0 -datadir=/data/.bitcoin
 
 # Wait for the block headers to be downloaded
 while true; do
@@ -20,5 +20,5 @@ while true; do
 done
 
 echo "Block headers downloaded, starting import"
-bitcoin-cli -datadir=/data/.bitcoin loadtxoutset /utxo-snapshot-height-840000.dat
+bitcoin-cli -datadir=/data/.bitcoin -rpcclienttimeout=3600 loadtxoutset /utxo-snapshot-height-840000.dat
 echo "Import completed"
