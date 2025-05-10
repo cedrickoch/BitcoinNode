@@ -26,8 +26,8 @@ Step by step instructions:
 1. Install Raspberry Pi OS
 2. Open a terminal session to the Raspberry Pi
 3. Update the OS to the latest version ( sudo apt-get update and sudo apt-get upgrade -y )
-4. Install Docker ( sudo apt-get install docker )
-5. Install Docker Compose ( sudo apt-get install docker-compose )
+4. Install Docker ( sudo apt-get install docker -y )
+5. Install Docker Compose ( sudo apt-get install docker-compose -y )
 6. Change to the installation directory ( e.g. cd /home/bitcoin )
 7. Clone the repository ( git clone https://github.com/cedrickoch/BitcoinNode.git )
 8. Change to the BitcoinNode folder ( cd BitcoinNode )
