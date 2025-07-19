@@ -44,3 +44,16 @@ scrape_configs:
     static_configs:
       - targets: ['electrs:4224']
     metrics_path: /
+
+  - job_name: bitaxe_json
+    metrics_path: /probe
+    static_configs:
+      - targets:
+        - http://bitaxe/api/system/info
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: json_exporter:7979
