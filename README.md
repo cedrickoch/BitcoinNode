@@ -19,7 +19,15 @@ List some key features of the project.
 - Install minimal personal bitcoin node
 - Fast initial blockchain sync using snapshot
 
-## Installation
+## Automatic Installation
+
+1. Install Raspberry Pi OS
+2. Open a terminal session to the Raspberry Pi
+3. Install pre-requisites ( sudo apt-get install git -y && git clone https://github.com/cedrickoch/BitcoinNode.git && cd BitcoinNode && ./install.sh )
+4. Open a terminal session to the Raspberry Pi
+5. Import the bitcoin snapshot ( cd BitcoinNode && ./install.sh )
+
+## Manual Installation
 
 Step by step instructions:
 
