@@ -117,7 +117,7 @@ services:
       command:
         - '--config.file=/config.yml'
       volumes:
-        - ./bitaxe/config.yml:/config.yml
+        - ./bitaxe/json_exporter/config.yml:/config.yml
 
     cadvisor:
       image: gcr.io/cadvisor/cadvisor:latest
