@@ -111,6 +111,16 @@ services:
         - /sys:/host/sys:ro
         - /:/rootfs:ro
 
+    json_exporter:
+      image: quay.io/prometheuscommunity/json-exporter:latest
+      restart: always
+      ports:
+        - 7979:7979
+      command:
+        - '--config.file=/config.yml'
+      volumes:
+        - ./bitaxe/json_exporter/config.yml:/config.yml
+
     cadvisor:
       image: gcr.io/cadvisor/cadvisor:latest
       container_name: cadvisor
