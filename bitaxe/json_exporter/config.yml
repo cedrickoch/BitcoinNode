@@ -72,20 +72,6 @@ modules:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
           version: '{.version}'
-      - name: isUsingFallbackStratum
-        path: '{ .isUsingFallbackStratum }'
-        help: Using fallback stratum (0/1)
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
-      - name: isPSRAMAvailable
-        path: '{ .isPSRAMAvailable }'
-        help: PSRAM available (0/1)
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
       - name: freeHeap
         path: '{ .freeHeap }'
         help: Free heap memory in bytes
@@ -121,13 +107,6 @@ modules:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
           version: '{.version}'
-      - name: apEnabled
-        path: '{ .apEnabled }'
-        help: Access point enabled (0/1)
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
       - name: sharesAccepted
         path: '{ .sharesAccepted }'
         help: Shares accepted
@@ -142,13 +121,6 @@ modules:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
           version: '{.version}'
-      - name: uptimeSeconds
-        path: '{ .uptimeSeconds }'
-        help: Uptime in seconds
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
       - name: smallCoreCount
         path: '{ .smallCoreCount }'
         help: Small core count
@@ -156,93 +128,9 @@ modules:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
           version: '{.version}'
-      - name: stratumPort
-        path: '{ .stratumPort }'
-        help: Stratum port
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
       - name: stratumSuggestedDifficulty
         path: '{ .stratumSuggestedDifficulty }'
         help: Stratum suggested difficulty
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
-      - name: stratumExtranonceSubscribe
-        path: '{ .stratumExtranonceSubscribe }'
-        help: Stratum extranonce subscribe (0/1)
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
-      - name: fallbackStratumPort
-        path: '{ .fallbackStratumPort }'
-        help: Fallback stratum port
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
-      - name: fallbackStratumSuggestedDifficulty
-        path: '{ .fallbackStratumSuggestedDifficulty }'
-        help: Fallback stratum suggested difficulty
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
-      - name: fallbackStratumExtranonceSubscribe
-        path: '{ .fallbackStratumExtranonceSubscribe }'
-        help: Fallback stratum extranonce subscribe (0/1)
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
-      - name: responseTime
-        path: '{ .responseTime }'
-        help: Response time in ms
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
-      - name: overheat_mode
-        path: '{ .overheat_mode }'
-        help: Overheat mode (0/1)
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
-      - name: overclockEnabled
-        path: '{ .overclockEnabled }'
-        help: Overclock enabled (0/1)
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
-      - name: rotation
-        path: '{ .rotation }'
-        help: Display rotation
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
-      - name: invertscreen
-        path: '{ .invertscreen }'
-        help: Invert screen (0/1)
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
-      - name: displayTimeout
-        path: '{ .displayTimeout }'
-        help: Display timeout
-        labels:
-          hostname: '{.hostname}'
-          asicmodel: '{.ASICModel}'
-          version: '{.version}'
-      - name: autofanspeed
-        path: '{ .autofanspeed }'
-        help: Auto fan speed (0/1)
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
