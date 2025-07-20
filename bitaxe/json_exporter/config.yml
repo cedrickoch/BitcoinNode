@@ -8,231 +8,270 @@ modules:
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: voltage
         path: '{ .voltage }'
         help: Voltage in mV
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: current
         path: '{ .current }'
         help: Current in mA
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: temp
         path: '{ .temp }'
         help: Temperature in °C
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: vrTemp
         path: '{ .vrTemp }'
         help: VR Temperature in °C
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: maxPower
         path: '{ .maxPower }'
         help: Max Power in Watts
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: nominalVoltage
         path: '{ .nominalVoltage }'
         help: Nominal Voltage in V
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: hashRate
         path: '{ .hashRate }'
         help: Hash rate in MH/s
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: expectedHashrate
         path: '{ .expectedHashrate }'
         help: Expected hash rate in MH/s
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: poolDifficulty
         path: '{ .poolDifficulty }'
         help: Pool difficulty
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: isUsingFallbackStratum
         path: '{ .isUsingFallbackStratum }'
         help: Using fallback stratum (0/1)
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: isPSRAMAvailable
         path: '{ .isPSRAMAvailable }'
         help: PSRAM available (0/1)
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: freeHeap
         path: '{ .freeHeap }'
         help: Free heap memory in bytes
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: coreVoltage
         path: '{ .coreVoltage }'
         help: Core voltage in mV
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: coreVoltageActual
         path: '{ .coreVoltageActual }'
         help: Actual core voltage in mV
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: frequency
         path: '{ .frequency }'
         help: Frequency in MHz
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: wifiRSSI
         path: '{ .wifiRSSI }'
         help: WiFi RSSI (signal strength)
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: apEnabled
         path: '{ .apEnabled }'
         help: Access point enabled (0/1)
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: sharesAccepted
         path: '{ .sharesAccepted }'
         help: Shares accepted
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: sharesRejected
         path: '{ .sharesRejected }'
         help: Shares rejected
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: uptimeSeconds
         path: '{ .uptimeSeconds }'
         help: Uptime in seconds
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: smallCoreCount
         path: '{ .smallCoreCount }'
         help: Small core count
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: stratumPort
         path: '{ .stratumPort }'
         help: Stratum port
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: stratumSuggestedDifficulty
         path: '{ .stratumSuggestedDifficulty }'
         help: Stratum suggested difficulty
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: stratumExtranonceSubscribe
         path: '{ .stratumExtranonceSubscribe }'
         help: Stratum extranonce subscribe (0/1)
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: fallbackStratumPort
         path: '{ .fallbackStratumPort }'
         help: Fallback stratum port
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: fallbackStratumSuggestedDifficulty
         path: '{ .fallbackStratumSuggestedDifficulty }'
         help: Fallback stratum suggested difficulty
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: fallbackStratumExtranonceSubscribe
         path: '{ .fallbackStratumExtranonceSubscribe }'
         help: Fallback stratum extranonce subscribe (0/1)
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: responseTime
         path: '{ .responseTime }'
         help: Response time in ms
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: overheat_mode
         path: '{ .overheat_mode }'
         help: Overheat mode (0/1)
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: overclockEnabled
         path: '{ .overclockEnabled }'
         help: Overclock enabled (0/1)
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: rotation
         path: '{ .rotation }'
         help: Display rotation
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: invertscreen
         path: '{ .invertscreen }'
         help: Invert screen (0/1)
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: displayTimeout
         path: '{ .displayTimeout }'
         help: Display timeout
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: autofanspeed
         path: '{ .autofanspeed }'
         help: Auto fan speed (0/1)
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: fanspeed
         path: '{ .fanspeed }'
         help: Fan speed (%)
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: temptarget
         path: '{ .temptarget }'
         help: Target temperature in °C
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: fanrpm
         path: '{ .fanrpm }'
         help: Fan RPM
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
       - name: statsFrequency
         path: '{ .statsFrequency }'
         help: Stats frequency
         labels:
           hostname: '{.hostname}'
           asicmodel: '{.ASICModel}'
+          version: '{.version}'
