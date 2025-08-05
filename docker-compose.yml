@@ -130,6 +130,16 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
 
+    public-pool:
+      image: 4324363/public-pool:arm64
+      restart: always
+      volumes:
+        - bitcoin_data:/data/.bitcoin:ro
+        - ./public-pool/.env:/public-pool/.env
+      ports:
+        - 3333:3333
+        - 3334:3334
+
 volumes:
     bitcoin_data:
     electrs_data:
