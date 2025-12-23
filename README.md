@@ -61,3 +61,8 @@ Step by step instructions:
 4. Restart the Raspberry PI ( sudo reboot )
 5. Login with SSH
 6. Start node
+
+## Update docker images
+
+1. Get the latest images ( docker-compose pull )
+2. Start the latest iamges ( docker-compose up -d )
