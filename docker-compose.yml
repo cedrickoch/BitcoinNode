@@ -1,12 +1,15 @@
 
 services:
     bitcoin:
-        image: lncm/bitcoind:v28.0
+        image: bitcoin/bitcoin:30.0
         container_name: bitcoind
         ports:
           - "8333:8333"
         volumes:
-            - bitcoin_data:/data/.bitcoin
+            - bitcoin_data:/home/bitcoin/.bitcoin
+        environment:
+          - UID=1000
+          - GID=1000
         command: ["-printtoconsole", "-rpcbind=0.0.0.0", "-rpcallowip=0.0.0.0/0", "-txindex=1"]
 
     electrs:
@@ -17,14 +20,14 @@ services:
       ports:
         - "50001:50001" # For the electrs API on mainnet
       volumes:
-        - electrs_data:/data
-        - bitcoin_data:/data/.bitcoin:ro
+        - electrs_data:/home/bitcoin
+        - bitcoin_data:/home/bitcoin/.bitcoin:ro
       environment:
-          - ELECTRS_DAEMON_DIR=/data/.bitcoin/ # Specify the directory since running in testnet mode we will have a different dir structure
+          - ELECTRS_DAEMON_DIR=/home/bitcoin/.bitcoin/ # Specify the directory since running in testnet mode we will have a different dir structure
           - ELECTRS_DAEMON_RPC_ADDR=bitcoin:8332 # Need to match the port as well
           - ELECTRS_DAEMON_P2P_ADDR=bitcoin:8333 # Need to match the port as well
-          - ELECTRS_DAEMON_RPC_COOKIE=/data/.bitcoin/.cookie # Need to match the cookie file
-          - ELECTRS_DB_DIR=/data/db
+          - ELECTRS_DAEMON_RPC_COOKIE=/home/bitcoin/.bitcoin/.cookie # Need to match the cookie file
+          - ELECTRS_DB_DIR=/home/bitcoin/db
           - ELECTRS_ELECTRUM_RPC_ADDR=electrs:50001
           - ELECTRS_MONITORING_ADDR=electrs:4224
       depends_on:
@@ -51,7 +54,7 @@ services:
         CORE_RPC_HOST: bitcoin
         CORE_RPC_PORT: "8332"
         CORE_RPC_COOKIE: "true"
-        CORE_RPC_COOKIE_PATH: "/data/.bitcoin/.cookie"
+        CORE_RPC_COOKIE_PATH: "/home/bitcoin/.bitcoin/.cookie"
         DATABASE_ENABLED: "true"
         DATABASE_HOST: "db"
         DATABASE_DATABASE: "mempool"
@@ -66,7 +69,7 @@ services:
       command: "./wait-for-it.sh db:3306 --timeout=720 --strict -- ./start.sh"
       volumes:
         - mempool_data:/backend/cache
-        - bitcoin_data:/data/.bitcoin:ro
+        - bitcoin_data:/home/bitcoin/.bitcoin:ro
 
 
     db:

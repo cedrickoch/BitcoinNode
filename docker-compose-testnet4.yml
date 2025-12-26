@@ -1,11 +1,12 @@
-version: '3.8'
-
 services:
     bitcoin:
-        image: lncm/bitcoind:v28.0
+        image: bitcoin/bitcoin:30.0
         container_name: bitcoind
         volumes:
-            - bitcoin_data:/data/.bitcoin
+            - bitcoin_data:/home/bitcoin/.bitcoin
+        environment:
+          - UID=1000
+          - GID=1000
         command: ["-printtoconsole", "-testnet4", "-rpcbind=0.0.0.0","-rpcport=48332", "-rpcallowip=172.0.0.0/8", "-txindex=1"]
 
     electrs:
@@ -15,16 +16,16 @@ services:
       command: ["/usr/bin/electrs", "--network=testnet4"] # Already set in testnet mode
       ports:
         - "40001:40001" # For the electrs RPC API on testnet4
-        - "44224:44224" # Prometheus metrics
+        - "44224:44224" # Promeetheus metrics
       volumes:
-        - electrs_data:/data
-        - bitcoin_data:/data/.bitcoin:ro
+        - electrs_data:/home/bitcoin
+        - bitcoin_data:/home/bitcoin/.bitcoin:ro
       environment:
-          - ELECTRS_DAEMON_DIR=/data/.bitcoin/ # Specify the directory since running in testnet mode we will have a different dir structure
+          - ELECTRS_DAEMON_DIR=/home/bitcoin/.bitcoin/ # Specify the directory since running in testnet mode we will have a different dir structure
           - ELECTRS_DAEMON_RPC_ADDR=bitcoin:48332 # Need to match the port as well
           - ELECTRS_DAEMON_P2P_ADDR=bitcoin:48333 # Need to match the port as well
-          - ELECTRS_DAEMON_RPC_COOKIE=/data/.bitcoin/testnet4/.cookie # Need to match the cookie file
-          - ELECTRS_DB_DIR=/data/db
+          - ELECTRS_DAEMON_RPC_COOKIE=/home/bitcoin/.bitcoin/testnet4/.cookie # Need to match the cookie file
+          - ELECTRS_DB_DIR=/home/bitcoin/db
           - ELECTRS_ELECTRUM_RPC_ADDR=electrs:40001
           - ELECTRS_MONITORING_ADDR=electrs:44224
       depends_on:
@@ -52,7 +53,7 @@ services:
         CORE_RPC_HOST: bitcoin
         CORE_RPC_PORT: "48332"
         CORE_RPC_COOKIE: true
-        CORE_RPC_COOKIE_PATH: "/data/.bitcoin/testnet4/.cookie"
+        CORE_RPC_COOKIE_PATH: "/home/bitcoin/.bitcoin/testnet4/.cookie"
         DATABASE_ENABLED: "true"
         DATABASE_HOST: "db"
         DATABASE_DATABASE: "mempool"
@@ -67,7 +68,7 @@ services:
       command: "./wait-for-it.sh db:3306 --timeout=720 --strict -- ./start.sh"
       volumes:
         - mempool_data:/backend/cache
-        - bitcoin_data:/data/.bitcoin:ro
+        - bitcoin_data:/home/bitcoin/.bitcoin:ro
 
 
     db:
@@ -121,17 +122,6 @@ services:
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
-
-    nginx:
-      image: nginx:latest
-      container_name: nginx-proxy
-      ports:
-        - "8081:80"
-      volumes:
-        - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      depends_on:
-        - web
-        - electrs
 
 volumes:
     bitcoin_data:
