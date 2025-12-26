@@ -1,12 +1,15 @@
 
 services:
     bitcoin:
-        image: lncm/bitcoind:v28.0
+        image: bitcoin/bitcoin:30.0
         container_name: bitcoind
         volumes:
-            - bitcoin_data:/data/.bitcoin
+            - bitcoin_data:/home/bitcoin/.bitcoin
             - ./import.sh:/import.sh
             - ./utxo-snapshot-height-840000.dat:/utxo-snapshot-height-840000.dat
+        environment:
+          - UID=1000
+          - GID=1000
         entrypoint: /import.sh
 
 volumes:
