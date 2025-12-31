@@ -137,7 +137,7 @@ services:
       image: 4324363/public-pool:arm64
       restart: always
       volumes:
-        - bitcoin_data:/data/.bitcoin:ro
+        - bitcoin_data:/home/bitcoin/.bitcoin:ro
         - ./public-pool/.env:/public-pool/.env
       ports:
         - 3333:3333
