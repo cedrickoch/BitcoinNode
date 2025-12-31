@@ -21,7 +21,7 @@ List some key features of the project.
 
 ## Automatic Installation
 
-1. Install Raspberry Pi OS
+1. Install Raspberry Pi OS ( https://www.raspberrypi.com/software/ )
 2. Open a terminal session to the Raspberry Pi
 3. Install pre-requisites ( sudo apt-get install git -y && git clone https://github.com/cedrickoch/BitcoinNode.git && cd BitcoinNode && ./install.sh )
 4. Open a terminal session to the Raspberry Pi
@@ -31,7 +31,7 @@ List some key features of the project.
 
 Step by step instructions:
 
-1. Install Raspberry Pi OS
+1. Install Raspberry Pi OS ( https://www.raspberrypi.com/software/ )
 2. Open a terminal session to the Raspberry Pi
 3. Update the OS to the latest version ( sudo apt-get update and sudo apt-get upgrade -y )
 4. Install Docker ( sudo apt-get install docker -y )
