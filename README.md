@@ -9,8 +9,54 @@ This project provides an easy way to set up a minimal personal Bitcoin node on a
 ## Table of Contents
 
 - [Overview](#overview)
+- [Architecture](#architecture)
 - [Features](#features)
 - [Installation](#installation)
+
+## Architecture
+
+The node is composed of several Docker containers defined in `docker-compose.yml`. They are grouped into four functional areas.
+
+### Core
+
+- **bitcoin** (bitcoind) — The Bitcoin Core full node. It validates and relays blocks and transactions on the Bitcoin network. Electrs and the Mempool API both depend on it for blockchain data via RPC and cookie-based authentication. Public-pool accesses its data directory through a shared Docker volume.
+- **electrs** — An Electrum server that indexes the blockchain from Bitcoin Core. It provides a lightweight query interface used by the Mempool API and can be connected to directly by wallet software (see below).
+
+### Mempool Explorer
+
+- **api** (mempool/backend) — The Mempool backend. It queries electrs for indexed blockchain data, Bitcoin Core for RPC calls, and the MariaDB database for cached statistics.
+- **db** (mariadb) — Stores Mempool statistics and cached data. Used exclusively by the API and waited on by the web frontend at startup.
+- **web** (mempool/frontend) — The Mempool web UI. It serves the block explorer frontend and proxies API requests to the backend.
+
+### Monitoring
+
+- **grafana** — Dashboard UI for visualizing metrics from Prometheus.
+- **prometheus** — Collects and stores metrics by scraping node_exporter, json_exporter, and cadvisor.
+- **node_exporter** — Exposes host-level system metrics (CPU, memory, disk, network) to Prometheus.
+- **json_exporter** — Scrapes JSON APIs and converts them to Prometheus metrics. Configured to monitor Bitaxe miners (hash rate, temperature, power, voltage, shares, etc.).
+- **cadvisor** — Exposes per-container resource usage metrics (CPU, memory, network) to Prometheus.
+
+### Mining
+
+- **public-pool** — A solo mining pool that uses the Stratum protocol. It reads blockchain data from Bitcoin Core through a shared Docker volume. Miners (such as a Bitaxe) connect to this service to submit work.
+
+### External Ports
+
+The following ports are exposed to the host and can be reached from other devices on your network:
+
+| Port | Service | Purpose |
+|------|---------|---------|
+| **80** | web | Mempool block explorer UI. Open in a browser to explore blocks, transactions, and mempool state. |
+| **3000** | grafana | Grafana dashboards. Open in a browser to view node and Bitaxe miner metrics. |
+| **3333** | public-pool | Stratum mining port. Point your Bitaxe or other miner here (e.g. `stratum+tcp://<node-ip>:3333`). |
+| **3334** | public-pool | Secondary Stratum port (e.g. for a different difficulty or miner group). |
+| **50001** | electrs | Electrum server port. Connect your wallet software (e.g. Sparrow, BlueWallet, Electrum) to `<node-ip>:50001` to use your own node for transaction lookups and broadcasting. |
+
+### Connecting external devices
+
+**Wallet software** — To use your own node instead of a third-party server, configure your wallet's Electrum server setting to `<node-ip>:50001`. This works with wallets like Sparrow Wallet, Electrum, and BlueWallet. Your transactions stay private because lookups never leave your network.
+
+**Bitaxe miner** — In the Bitaxe web UI, set the Stratum URL to `<node-ip>` and the port to `3333`. This points the miner at your local public-pool instance for solo mining. Miner statistics (hash rate, temperature, power draw, shares) are automatically collected by json_exporter and visible in Grafana.
 
 ## Features
 
