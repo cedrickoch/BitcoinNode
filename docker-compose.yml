@@ -1,10 +1,8 @@
 
 services:
     bitcoin:
-        image: bitcoin/bitcoin:30.0
+        image: bitcoin/bitcoin:30.2
         container_name: bitcoind
-        ports:
-          - "8333:8333"
         volumes:
             - bitcoin_data:/home/bitcoin/.bitcoin
         environment:
@@ -96,8 +94,6 @@ services:
     prometheus:
       image: prom/prometheus:latest
       restart: always
-      ports:
-        - 9090:9090
       volumes:
         - prometheus_data:/prometheus
         - ./prometheus/:/etc/prometheus/
@@ -117,8 +113,6 @@ services:
     json_exporter:
       image: quay.io/prometheuscommunity/json-exporter:latest
       restart: always
-      ports:
-        - 7979:7979
       command:
         - '--config.file=/config.yml'
       volumes:
