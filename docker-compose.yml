@@ -1,7 +1,7 @@
 
 services:
     bitcoin:
-        image: bitcoin/bitcoin:30.2
+        image: bitcoin/bitcoin:31.0
         container_name: bitcoind
         volumes:
             - bitcoin_data:/home/bitcoin/.bitcoin
