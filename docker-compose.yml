@@ -138,7 +138,7 @@ services:
         - 3334:3334
 
     btctrack:
-      image: 4324363/btctrack:v1.0-arm64
+      image: 4324363/btctrack:v1.1-arm64
       container_name: btctrack
       restart: unless-stopped
       ports:
