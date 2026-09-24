@@ -118,6 +118,20 @@ services:
       volumes:
         - ./bitaxe/json_exporter/config.yml:/config.yml
 
+    bitcoind_exporter:
+      image: ghcr.io/primexz/bitcoind-exporter:latest
+      restart: always
+      environment:
+        RPC_ADDRESS: "http://bitcoin:8332"
+        # Cookie auth — same rotating cookie the other services use, so we don't
+        # have to set rpcuser/rpcpassword on bitcoind (which would disable it).
+        RPC_COOKIE_FILE: "/home/bitcoin/.bitcoin/.cookie"
+        METRIC_PORT: "9332"
+      volumes:
+        - bitcoin_data:/home/bitcoin/.bitcoin:ro
+      depends_on:
+        - bitcoin
+
     cadvisor:
       image: gcr.io/cadvisor/cadvisor:latest
       container_name: cadvisor

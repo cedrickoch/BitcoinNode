@@ -45,6 +45,10 @@ scrape_configs:
       - targets: ['electrs:4224']
     metrics_path: /
 
+  - job_name: bitcoind
+    static_configs:
+      - targets: ['bitcoind_exporter:9332']
+
   - job_name: bitaxe_json
     metrics_path: /probe
     static_configs:
