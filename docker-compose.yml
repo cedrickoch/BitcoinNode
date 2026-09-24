@@ -90,8 +90,6 @@ services:
         - 3000:3000
       volumes:
         - grafana_data:/var/lib/grafana
-        - ./Grafana/provisioning:/etc/grafana/provisioning
-        - ./Grafana/dashboards:/etc/grafana/dashboards
 
     prometheus:
       image: prom/prometheus:latest
