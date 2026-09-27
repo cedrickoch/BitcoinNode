@@ -13,6 +13,7 @@ services:
           - "-rpcallowip=0.0.0.0/0"
           - "-txindex=1"
           - "-proxy=tor:9050"          # All outbound P2P through Tor
+          - "-onion=tor:9050"          # Set explicitly, otherwise torcontrol replaces it with 127.0.0.1:9050
           - "-onlynet=onion"           # Never connect to peers over clearnet
           - "-listen=1"
           - "-bind=0.0.0.0:8333"       # Still reachable by electrs on the docker network
