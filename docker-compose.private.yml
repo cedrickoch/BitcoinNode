@@ -12,26 +12,27 @@ services:
           - "-rpcbind=0.0.0.0"
           - "-rpcallowip=0.0.0.0/0"
           - "-txindex=1"
-          - "-proxy=tor:9050"          # All outbound P2P through Tor
-          - "-onion=tor:9050"          # Set explicitly, otherwise torcontrol replaces it with 127.0.0.1:9050
+          - "-proxy=127.0.0.1:9050"    # All outbound P2P through Tor
+          - "-onion=127.0.0.1:9050"
           - "-onlynet=onion"           # Never connect to peers over clearnet
           - "-listen=1"
           - "-bind=0.0.0.0:8333"       # Still reachable by electrs on the docker network
           - "-bind=0.0.0.0:8334=onion" # Inbound connections from the onion service
           - "-listenonion=1"
-          - "-torcontrol=tor:9051"
+          - "-torcontrol=127.0.0.1:9051"
           - "-torpassword=${TOR_CONTROL_PASSWORD:?Set TOR_CONTROL_PASSWORD in .env}"
           - "-discover=0"              # Don't advertise local/public IPs
           - "-dnsseed=0"               # No clearnet DNS lookups, use built-in onion seeds
-        depends_on:
-          - tor
 
     tor:
       build: ./tor
       container_name: tor
       restart: always
-      # No ports published: SOCKS (9050) and control (9051) are only reachable
-      # from containers on the compose network.
+      # Share bitcoind's network namespace so SOCKS (9050) and control (9051)
+      # listen on 127.0.0.1 only: reachable by bitcoind, not by other containers.
+      network_mode: "service:bitcoin"
+      depends_on:
+        - bitcoin
       environment:
         TOR_CONTROL_PASSWORD: ${TOR_CONTROL_PASSWORD:?Set TOR_CONTROL_PASSWORD in .env}
       volumes:

@@ -16,8 +16,8 @@ HASHED_PASSWORD=$(tor --quiet --hash-password "$TOR_CONTROL_PASSWORD" | tail -n 
 cat > /etc/tor/torrc <<EOF
 User tor
 DataDirectory /var/lib/tor
-SocksPort 0.0.0.0:9050
-ControlPort 0.0.0.0:9051
+SocksPort 127.0.0.1:9050
+ControlPort 127.0.0.1:9051
 HashedControlPassword $HASHED_PASSWORD
 Log notice stdout
 EOF
