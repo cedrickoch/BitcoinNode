@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="430" viewBox="0 0 1180 430" role="img" aria-label="Private mode: LAN devices connect to the Pi exactly as before; bitcoind reaches peers only through a tor container on 127.0.0.1, whose traffic crosses the Tor network to .onion peers, which never see your public IP.">
+<style>
+  text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #17201d; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+  .small { font-size: 11px; fill: #5d6b66; }
+  .zone-label { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; letter-spacing: 0.06em; fill: #5d6b66; }
+  .box { fill: #ffffff; stroke: #9aa7a2; stroke-width: 1.2; }
+  .zone-solid { fill: #f3f5f4; stroke: #dfe5e2; stroke-width: 1; }
+  .edge { fill: none; stroke: #9aa7a2; stroke-width: 1.4; }
+  .edge-exposed { fill: none; stroke: #c2410c; stroke-width: 2.2; }
+  .edge-tor { fill: none; stroke: #7a3fa0; stroke-width: 2.2; }
+  .box-exposed { fill: #fde8dc; stroke: #c2410c; stroke-width: 1.6; }
+  .box-tor { fill: #efe4f6; stroke: #7a3fa0; stroke-width: 1.6; }
+  .ns { fill: none; stroke: #7a3fa0; stroke-width: 1.2; stroke-dasharray: 5 4; }
+  .t-exposed { fill: #c2410c; font-weight: 500; }
+  .t-tor { fill: #7a3fa0; font-weight: 500; }
+  .head-muted { fill: #9aa7a2; }
+  .head-exposed { fill: #c2410c; }
+  .head-tor { fill: #7a3fa0; }
+  .relay { fill: #efe4f6; stroke: #7a3fa0; stroke-width: 1.4; }
+</style>
+<rect width="1180" height="430" rx="10" fill="#ffffff"/>
+          <defs>
+            <marker id="b-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-muted" d="M0,0 L10,5 L0,10 z"/></marker>
+            <marker id="b-tor" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-tor" d="M0,0 L10,5 L0,10 z"/></marker>
+          </defs>
+
+          <!-- Zones -->
+          <text class="zone-label" x="20" y="72">YOUR LAN</text>
+          <rect class="zone-solid" x="200" y="50" width="460" height="350" rx="10"/>
+          <text class="zone-label" x="216" y="74">RASPBERRY PI · DOCKER</text>
+          <text class="zone-label" x="700" y="72">EDGE</text>
+          <text class="zone-label" x="870" y="72">TOR NETWORK</text>
+          <text class="zone-label" x="1000" y="72">INTERNET</text>
+
+          <!-- LAN devices -->
+          <rect class="box" x="20" y="100" width="150" height="48" rx="6"/>
+          <text x="95" y="129" text-anchor="middle">Wallet (Sparrow)</text>
+          <rect class="box" x="20" y="190" width="150" height="48" rx="6"/>
+          <text x="95" y="219" text-anchor="middle">Browser</text>
+          <rect class="box" x="20" y="280" width="150" height="48" rx="6"/>
+          <text x="95" y="309" text-anchor="middle">Bitaxe miner</text>
+
+          <!-- Published services -->
+          <rect class="box" x="240" y="100" width="170" height="48" rx="6"/>
+          <text class="mono" x="325" y="129" text-anchor="middle">electrs :50001</text>
+          <rect class="box" x="240" y="190" width="170" height="48" rx="6"/>
+          <text class="mono" x="325" y="219" text-anchor="middle">web :80 :3000 :8501</text>
+          <rect class="box" x="240" y="280" width="170" height="48" rx="6"/>
+          <text class="mono" x="325" y="309" text-anchor="middle">public-pool :3333</text>
+
+          <!-- LAN edges -->
+          <line class="edge" x1="170" y1="124" x2="238" y2="124" marker-end="url(#b-muted)"/>
+          <text class="small" x="205" y="116" text-anchor="middle">Electrum</text>
+          <line class="edge" x1="170" y1="214" x2="238" y2="214" marker-end="url(#b-muted)"/>
+          <text class="small" x="205" y="206" text-anchor="middle">HTTP</text>
+          <line class="edge" x1="170" y1="304" x2="238" y2="304" marker-end="url(#b-muted)"/>
+          <text class="small" x="205" y="296" text-anchor="middle">Stratum</text>
+
+          <!-- Shared namespace -->
+          <rect class="ns" x="450" y="96" width="206" height="290" rx="8"/>
+          <text class="small" x="550" y="116" text-anchor="middle">shared network namespace</text>
+
+          <!-- bitcoind -->
+          <rect class="box" x="470" y="180" width="160" height="68" rx="6"/>
+          <text x="550" y="210" text-anchor="middle" font-weight="600">bitcoind</text>
+          <text class="small mono" x="550" y="230" text-anchor="middle">-onlynet=onion</text>
+
+          <!-- Internal edges -->
+          <path class="edge" d="M410,124 L440,124 L440,196 L468,196" marker-end="url(#b-muted)"/>
+          <line class="edge" x1="410" y1="214" x2="468" y2="214" marker-end="url(#b-muted)"/>
+          <path class="edge" d="M410,304 L440,304 L440,232 L468,232" marker-end="url(#b-muted)"/>
+
+          <!-- tor -->
+          <rect class="box-tor" x="470" y="300" width="160" height="60" rx="6"/>
+          <text x="550" y="326" text-anchor="middle" font-weight="600">tor</text>
+          <text class="small mono" x="550" y="345" text-anchor="middle">127.0.0.1 only</text>
+          <line class="edge-tor" x1="550" y1="248" x2="550" y2="298" marker-end="url(#b-tor)"/>
+          <text class="small mono" x="558" y="272">SOCKS :9050</text>
+          <text class="small mono" x="558" y="287">control :9051</text>
+
+          <!-- Router -->
+          <rect class="box" x="700" y="180" width="140" height="68" rx="6"/>
+          <text x="770" y="210" text-anchor="middle">Home router</text>
+          <text class="small mono" x="770" y="230" text-anchor="middle">your public IP</text>
+          <path class="edge-tor" d="M630,330 L670,330 L670,236 L698,236" marker-end="url(#b-tor)"/>
+          <text class="small" x="770" y="276" text-anchor="middle">only encrypted</text>
+          <text class="small" x="770" y="292" text-anchor="middle">Tor traffic</text>
+
+          <!-- Tor relays -->
+          <line class="edge-tor" x1="840" y1="214" x2="864" y2="214" marker-end="url(#b-tor)"/>
+          <circle class="relay" cx="880" cy="214" r="14"/>
+          <line class="edge-tor" x1="894" y1="214" x2="910" y2="214" marker-end="url(#b-tor)"/>
+          <circle class="relay" cx="926" cy="214" r="14"/>
+          <line class="edge-tor" x1="940" y1="214" x2="956" y2="214" marker-end="url(#b-tor)"/>
+          <circle class="relay" cx="972" cy="214" r="14"/>
+          <line class="edge-tor" x1="986" y1="214" x2="998" y2="214" marker-end="url(#b-tor)"/>
+          <text class="small" x="926" y="252" text-anchor="middle">relays, in and out</text>
+
+          <!-- Peers -->
+          <rect class="box-tor" x="1000" y="160" width="160" height="108" rx="6"/>
+          <text x="1080" y="192" text-anchor="middle" font-weight="600">.onion peers</text>
+          <text class="small" x="1080" y="212" text-anchor="middle">outbound + inbound</text>
+          <text class="t-tor" x="1080" y="242" text-anchor="middle">see only your .onion</text>
+        </svg>

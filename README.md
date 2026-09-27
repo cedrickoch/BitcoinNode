@@ -98,6 +98,14 @@ Step by step instructions:
 
 By default the node talks to other Bitcoin peers over the normal internet, so every peer can see your public IP address. In private mode all peer-to-peer traffic goes through Tor, so the node only talks to `.onion` peers and your IP stays hidden. Devices on your local network (wallets, Bitaxe, browser) still connect directly to `<node-ip>` exactly as before. Only the node's traffic to the Bitcoin network goes through Tor.
 
+**Normal mode:** bitcoind connects to peers directly through your router, so every peer sees your public IP.
+
+![Network diagram in normal mode](docs/network-normal.svg)
+
+**Private mode:** bitcoind can only reach the internet through the tor container, which listens on 127.0.0.1 inside bitcoind's network namespace. Peers only see the node's `.onion` address.
+
+![Network diagram in private mode (Tor)](docs/network-tor.svg)
+
 1. Create the config file ( cp .env.example .env )
 2. Set a random control password in `.env` ( e.g. TOR_CONTROL_PASSWORD=<output of openssl rand -hex 32> )
 3. Start in private mode ( docker compose -f docker-compose.yml -f docker-compose.private.yml up -d )

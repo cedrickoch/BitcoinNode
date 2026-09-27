@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="430" viewBox="0 0 1180 430" role="img" aria-label="Normal mode: LAN devices connect to services on the Pi; bitcoind connects to clearnet Bitcoin peers through the home router, so every peer sees your public IP.">
+<style>
+  text { font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; font-size: 13px; fill: #17201d; }
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 12px; }
+  .small { font-size: 11px; fill: #5d6b66; }
+  .zone-label { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 11px; letter-spacing: 0.06em; fill: #5d6b66; }
+  .box { fill: #ffffff; stroke: #9aa7a2; stroke-width: 1.2; }
+  .zone-solid { fill: #f3f5f4; stroke: #dfe5e2; stroke-width: 1; }
+  .edge { fill: none; stroke: #9aa7a2; stroke-width: 1.4; }
+  .edge-exposed { fill: none; stroke: #c2410c; stroke-width: 2.2; }
+  .edge-tor { fill: none; stroke: #7a3fa0; stroke-width: 2.2; }
+  .box-exposed { fill: #fde8dc; stroke: #c2410c; stroke-width: 1.6; }
+  .box-tor { fill: #efe4f6; stroke: #7a3fa0; stroke-width: 1.6; }
+  .ns { fill: none; stroke: #7a3fa0; stroke-width: 1.2; stroke-dasharray: 5 4; }
+  .t-exposed { fill: #c2410c; font-weight: 500; }
+  .t-tor { fill: #7a3fa0; font-weight: 500; }
+  .head-muted { fill: #9aa7a2; }
+  .head-exposed { fill: #c2410c; }
+  .head-tor { fill: #7a3fa0; }
+  .relay { fill: #efe4f6; stroke: #7a3fa0; stroke-width: 1.4; }
+</style>
+<rect width="1180" height="430" rx="10" fill="#ffffff"/>
+          <defs>
+            <marker id="a-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-muted" d="M0,0 L10,5 L0,10 z"/></marker>
+            <marker id="a-exposed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head-exposed" d="M0,0 L10,5 L0,10 z"/></marker>
+          </defs>
+
+          <!-- Zones -->
+          <text class="zone-label" x="20" y="72">YOUR LAN</text>
+          <rect class="zone-solid" x="200" y="50" width="460" height="350" rx="10"/>
+          <text class="zone-label" x="216" y="74">RASPBERRY PI · DOCKER</text>
+          <text class="zone-label" x="700" y="72">EDGE</text>
+          <text class="zone-label" x="1000" y="72">INTERNET</text>
+
+          <!-- LAN devices -->
+          <rect class="box" x="20" y="100" width="150" height="48" rx="6"/>
+          <text x="95" y="129" text-anchor="middle">Wallet (Sparrow)</text>
+          <rect class="box" x="20" y="190" width="150" height="48" rx="6"/>
+          <text x="95" y="219" text-anchor="middle">Browser</text>
+          <rect class="box" x="20" y="280" width="150" height="48" rx="6"/>
+          <text x="95" y="309" text-anchor="middle">Bitaxe miner</text>
+
+          <!-- Published services -->
+          <rect class="box" x="240" y="100" width="170" height="48" rx="6"/>
+          <text class="mono" x="325" y="129" text-anchor="middle">electrs :50001</text>
+          <rect class="box" x="240" y="190" width="170" height="48" rx="6"/>
+          <text class="mono" x="325" y="219" text-anchor="middle">web :80 :3000 :8501</text>
+          <rect class="box" x="240" y="280" width="170" height="48" rx="6"/>
+          <text class="mono" x="325" y="309" text-anchor="middle">public-pool :3333</text>
+
+          <!-- LAN edges -->
+          <line class="edge" x1="170" y1="124" x2="238" y2="124" marker-end="url(#a-muted)"/>
+          <text class="small" x="205" y="116" text-anchor="middle">Electrum</text>
+          <line class="edge" x1="170" y1="214" x2="238" y2="214" marker-end="url(#a-muted)"/>
+          <text class="small" x="205" y="206" text-anchor="middle">HTTP</text>
+          <line class="edge" x1="170" y1="304" x2="238" y2="304" marker-end="url(#a-muted)"/>
+          <text class="small" x="205" y="296" text-anchor="middle">Stratum</text>
+
+          <!-- bitcoind -->
+          <rect class="box" x="470" y="180" width="160" height="68" rx="6"/>
+          <text x="550" y="210" text-anchor="middle" font-weight="600">bitcoind</text>
+          <text class="small" x="550" y="230" text-anchor="middle">Bitcoin Core 31</text>
+
+          <!-- Internal edges -->
+          <path class="edge" d="M410,124 L440,124 L440,196 L468,196" marker-end="url(#a-muted)"/>
+          <line class="edge" x1="410" y1="214" x2="468" y2="214" marker-end="url(#a-muted)"/>
+          <path class="edge" d="M410,304 L440,304 L440,232 L468,232" marker-end="url(#a-muted)"/>
+          <text class="small" x="550" y="276" text-anchor="middle">internal only:</text>
+          <text class="small mono" x="550" y="292" text-anchor="middle">RPC 8332 · P2P 8333</text>
+
+          <!-- Router -->
+          <rect class="box" x="700" y="180" width="140" height="68" rx="6"/>
+          <text x="770" y="210" text-anchor="middle">Home router</text>
+          <text class="small mono" x="770" y="230" text-anchor="middle">your public IP</text>
+          <text class="small" x="770" y="276" text-anchor="middle">8333 not forwarded:</text>
+          <text class="small" x="770" y="292" text-anchor="middle">outbound only</text>
+
+          <!-- Exposed path -->
+          <line class="edge-exposed" x1="630" y1="214" x2="698" y2="214" marker-end="url(#a-exposed)"/>
+          <text class="small mono" x="665" y="204" text-anchor="middle">P2P</text>
+          <line class="edge-exposed" x1="840" y1="214" x2="998" y2="214" marker-end="url(#a-exposed)"/>
+          <text class="t-exposed" x="919" y="204" text-anchor="middle">plain TCP</text>
+
+          <!-- Peers -->
+          <rect class="box-exposed" x="1000" y="160" width="160" height="108" rx="6"/>
+          <text x="1080" y="192" text-anchor="middle" font-weight="600">Bitcoin peers</text>
+          <text class="small" x="1080" y="212" text-anchor="middle">clearnet, ~10 outbound</text>
+          <text class="t-exposed" x="1080" y="242" text-anchor="middle">see your public IP</text>
+        </svg>
