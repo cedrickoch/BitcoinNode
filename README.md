@@ -94,6 +94,22 @@ Step by step instructions:
 12. Import the bitcoin snapshot. It will take a while ( docker-compose -f docker-compose-import.yml up )
 13. Start the bitcoin node ( docker-compose up -d )
 
+## Private mode (Tor)
+
+By default the node talks to other Bitcoin peers over the normal internet, so every peer can see your public IP address. In private mode all peer-to-peer traffic goes through Tor, so the node only talks to `.onion` peers and your IP stays hidden. Devices on your local network (wallets, Bitaxe, browser) still connect directly to `<node-ip>` exactly as before. Only the node's traffic to the Bitcoin network goes through Tor.
+
+1. Create the config file ( cp .env.example .env )
+2. Set a random control password in `.env` ( e.g. TOR_CONTROL_PASSWORD=<output of openssl rand -hex 32> )
+3. Start in private mode ( docker compose -f docker-compose.yml -f docker-compose.private.yml up -d )
+
+To always start in private mode, uncomment the `COMPOSE_FILE=` line in `.env`. After that, a plain `docker compose up -d` uses Tor. To go back to normal mode, comment it out again, or run `docker compose -f docker-compose.yml up -d`. Switching modes recreates the bitcoind container.
+
+Verify that private mode is active:
+
+- `docker logs bitcoind | grep -i tor` shows `Got tor service ID ...` and the node's `.onion` address
+- `docker exec -u bitcoin bitcoind bitcoin-cli getnetworkinfo` shows `ipv4` and `ipv6` as `"reachable": false`, and only an `.onion` address under `localaddresses`
+- `docker exec -u bitcoin bitcoind bitcoin-cli getpeerinfo | grep '"network"'` lists only `onion` peers
+
 ## Stop node
 
 1. Change to the BitcoinNode folder ( cd BitcoinNode )

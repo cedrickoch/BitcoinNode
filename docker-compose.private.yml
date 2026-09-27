@@ -1,0 +1,40 @@
+# Private mode: routes all Bitcoin P2P traffic through Tor so peers never see
+# your public IP. LAN access to electrs, mempool, grafana etc. is unchanged.
+#
+# Start with:
+#   docker compose -f docker-compose.yml -f docker-compose.private.yml up -d
+# or set COMPOSE_FILE in .env (see .env.example) to make it the default.
+
+services:
+    bitcoin:
+        command:
+          - "-printtoconsole"
+          - "-rpcbind=0.0.0.0"
+          - "-rpcallowip=0.0.0.0/0"
+          - "-txindex=1"
+          - "-proxy=tor:9050"          # All outbound P2P through Tor
+          - "-onlynet=onion"           # Never connect to peers over clearnet
+          - "-listen=1"
+          - "-bind=0.0.0.0:8333"       # Still reachable by electrs on the docker network
+          - "-bind=0.0.0.0:8334=onion" # Inbound connections from the onion service
+          - "-listenonion=1"
+          - "-torcontrol=tor:9051"
+          - "-torpassword=${TOR_CONTROL_PASSWORD:?Set TOR_CONTROL_PASSWORD in .env}"
+          - "-discover=0"              # Don't advertise local/public IPs
+          - "-dnsseed=0"               # No clearnet DNS lookups, use built-in onion seeds
+        depends_on:
+          - tor
+
+    tor:
+      build: ./tor
+      container_name: tor
+      restart: always
+      # No ports published: SOCKS (9050) and control (9051) are only reachable
+      # from containers on the compose network.
+      environment:
+        TOR_CONTROL_PASSWORD: ${TOR_CONTROL_PASSWORD:?Set TOR_CONTROL_PASSWORD in .env}
+      volumes:
+        - tor_data:/var/lib/tor # Keeps the onion address stable across restarts
+
+volumes:
+    tor_data:
