@@ -40,6 +40,10 @@ scrape_configs:
     static_configs:
       - targets: ["192.168.1.1:9100"]
 
+  - job_name: "OpenWRT Cudy"
+    static_configs:
+      - targets: ["192.168.1.2:9100"]
+
   - job_name: electrs
     static_configs:
       - targets: ['electrs:4224']
