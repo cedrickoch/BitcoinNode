@@ -3,6 +3,7 @@ services:
     bitcoin:
         image: lncm/bitcoind:v28.0
         container_name: bitcoind
+        stop_grace_period: 5m # let bitcoind flush its UTXO cache
         volumes:
             - bitcoin_data:/data/.bitcoin
         networks:

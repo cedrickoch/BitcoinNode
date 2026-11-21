@@ -2,6 +2,7 @@ services:
     bitcoin:
         image: bitcoin/bitcoin:31.0
         container_name: bitcoind
+        stop_grace_period: 5m # let bitcoind flush its UTXO cache
         volumes:
             - bitcoin_data:/home/bitcoin/.bitcoin
         environment:

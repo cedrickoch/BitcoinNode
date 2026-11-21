@@ -2,117 +2,145 @@
 
 # Self-built bitcoind for the Raspberry Pi, built from GPG-verified source.
 # Native arm64 build (run on the ARM Mac):
-#   docker build -t 4324363/bitcoind:32.1 .
+#   ./fetch-keys.sh        # once / when MAINTAINER_KEYS change
+#   docker buildx build --platform linux/arm64 --load -t 4324363/bitcoind:32.1 .
 #   docker push 4324363/bitcoind:32.1
 #
-# Other arch: --build-arg HOST=x86_64-linux-gnu
-# Wallet enabled: add -DENABLE_WALLET=ON -DENABLE_SQLITE=ON and drop NO_WALLET=1
-# (depends then also builds sqlite; wallet code needs the sqlite dev package).
+# The target triple is derived from --platform (TARGETARCH); override with
+# --build-arg HOST=... only if you know what you are doing.
+# Wallet enabled: add -DENABLE_WALLET=ON -DENABLE_SQLITE=ON and drop NO_WALLET=1.
 
+# Pin by digest for reproducible builds, e.g.
+#   docker buildx imagetools inspect debian:bookworm-slim
+#   --build-arg BASE=debian:bookworm-slim@sha256:<digest>
 ARG BASE=debian:bookworm-slim
 
 FROM ${BASE} AS build
 
 ARG BITCOIN_VERSION=32.1
-# GNU triplet for the target machine; aarch64-linux-gnu = native on ARM
-# (Apple Silicon Docker / Raspberry Pi). It must match the build triple,
-# otherwise depends looks for a cross toolchain (arm64-linux-gnu-g++ does
-# not exist in Debian).
-ARG HOST=aarch64-linux-gnu
+ARG TARGETARCH
+ARG HOST=
 
-# Release maintainers whose signatures must verify SHA256SUMS.
-# Review the signer list on the release page for each new version:
+# Release maintainers whose signatures must verify SHA256SUMS. The public
+# keys are read from ./keys (committed, see fetch-keys.sh), never from a
+# keyserver at build time. Review the signer list for each new version:
 # https://bitcoincore.org/bin/bitcoin-core-${BITCOIN_VERSION}/
-ARG MAINTAINER_KEYS="E777299FC265DD04793070EB944D35F9AC3DB76A 152812300785C96444D3334D17565732A0850599"
+#   E777299F... = Michael Ford (fanquake), 15281230... = Ava Chow (achow101)
+ARG MAINTAINER_KEYS="E777299FC265DD04793070EB944D35F9AC3DB76A 152812300785C96444D3334D17565732E08E5E41"
+# Number of distinct pinned maintainers that must have signed SHA256SUMS.
+ARG MIN_SIGS=2
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential libtool autotools-dev automake pkg-config bsdmainutils \
-        python3 cmake ca-certificates curl wget gnupg \
+        build-essential pkg-config python3 cmake ca-certificates curl gnupg \
     && rm -rf /var/lib/apt/lists/*
+
+# Resolve the GNU triplet from the build platform and make sure it is the
+# native one (depends would otherwise look for a non-existent cross toolchain).
+RUN set -eux; \
+    host="${HOST}"; \
+    if [ -z "$host" ]; then \
+      case "${TARGETARCH:-$(dpkg --print-architecture)}" in \
+        arm64) host=aarch64-linux-gnu ;; \
+        amd64) host=x86_64-linux-gnu ;; \
+        *) echo "unsupported arch: ${TARGETARCH}" >&2; exit 1 ;; \
+      esac; \
+    fi; \
+    [ "$(gcc -dumpmachine)" = "$host" ] \
+      || { echo "HOST=$host does not match native $(gcc -dumpmachine)" >&2; exit 1; }; \
+    echo "$host" > /host
 
 WORKDIR /fetch
 RUN set -eux; \
     base="https://bitcoincore.org/bin/bitcoin-core-${BITCOIN_VERSION}"; \
-    curl -fSL --retry 5 -o "bitcoin-${BITCOIN_VERSION}.tar.gz" "$base/bitcoin-${BITCOIN_VERSION}.tar.gz"; \
-    curl -fSL --retry 5 -o SHA256SUMS "$base/SHA256SUMS"; \
-    curl -fSL --retry 5 -o SHA256SUMS.asc "$base/SHA256SUMS.asc"
+    for f in "bitcoin-${BITCOIN_VERSION}.tar.gz" SHA256SUMS SHA256SUMS.asc; do \
+      curl -fSL --proto '=https' --tlsv1.2 --retry 5 -o "$f" "$base/$f"; \
+    done
 
-# Import trusted maintainer keys, with a fallback keyserver per key.
-# Individual import failures are tolerated; requiring at least one imported
-# key here, plus the signature check below, keeps verification fail-closed.
-RUN set -eux; \
-    for fp in ${MAINTAINER_KEYS}; do \
-      gpg --keyserver hkps://keyserver.ubuntu.com --recv-keys "$fp" \
-        || gpg --keyserver hkps://keys.openpgp.org --recv-keys "$fp" \
-        || true; \
-    done; \
-    [ "$(gpg --list-keys --with-colons | grep -c '^pub')" -ge 1 ]
+COPY keys/ /keys/
 
-# Plain `gpg --verify` would exit 2: other builders also signed SHA256SUMS and
-# their keys are not imported ("Can't check signature: No public key").
-# Instead require at least one VALIDSIG whose primary fingerprint is trusted.
+# Import pinned keys from the repo; every pinned key must be present and
+# not revoked.
 RUN set -eux; \
-    ok=0; \
+    gpg --batch --import /keys/*.gpg; \
     for fp in ${MAINTAINER_KEYS}; do \
-      if gpg --status-fd 1 --verify SHA256SUMS.asc SHA256SUMS 2>/dev/null \
-           | grep "^\[GNUPG:\] VALIDSIG" | grep -qw "$fp"; then \
-        ok=1; \
+      pub="$(gpg --batch --with-colons --list-keys "$fp" | grep '^pub:')" \
+        || { echo "ERROR: key $fp missing in keys/ (run fetch-keys.sh)" >&2; exit 1; }; \
+      [ "$(echo "$pub" | cut -d: -f2)" != "r" ] \
+        || { echo "ERROR: key $fp is revoked" >&2; exit 1; }; \
+    done
+
+# Plain `gpg --verify` exits non-zero because other builders' keys are not
+# imported. Instead count VALIDSIG lines (the pinned primary fingerprint
+# appears in the line whether the sig was made with the primary or a subkey)
+# from distinct pinned maintainers and require at least MIN_SIGS.
+RUN set -eux; \
+    status="$(gpg --batch --status-fd 1 --verify SHA256SUMS.asc SHA256SUMS 2>/dev/null || true)"; \
+    n=0; \
+    for fp in ${MAINTAINER_KEYS}; do \
+      if echo "$status" | grep '^\[GNUPG:\] VALIDSIG ' | grep -qw "$fp"; then \
+        n=$((n + 1)); \
       fi; \
     done; \
-    [ "$ok" = "1" ] || { echo "ERROR: no trusted signature on SHA256SUMS" >&2; exit 1; }; \
+    [ "$n" -ge "${MIN_SIGS}" ] \
+      || { echo "ERROR: $n trusted signature(s) on SHA256SUMS, need ${MIN_SIGS}" >&2; exit 1; }; \
     grep " bitcoin-${BITCOIN_VERSION}.tar.gz\$" SHA256SUMS | sha256sum -c -
 
 WORKDIR /src
-RUN tar -xzf "/fetch/bitcoin-${BITCOIN_VERSION}.tar.gz" --strip-components=1
+RUN tar -xzf "/fetch/bitcoin-${BITCOIN_VERSION}.tar.gz" --strip-components=1 \
+    && [ -f CMakeLists.txt ] \
+    || { echo "ERROR: no CMakeLists.txt; only Bitcoin Core >= 29 is supported" >&2; exit 1; }
 
-# depends system: builds boost (via CMake, hence the cmake install above)
-# and libevent. NO_* skips packages the configure flags don't need (qt/capnp
-# would also require cmake; capnp is only for --enable-multiprocess, which we
-# don't use). HOST must match the build triple (native build).
-RUN make -j"$(nproc)" -C depends HOST="${HOST}" \
+# depends: builds boost (headers, via CMake) and libevent as static libs;
+# their source hashes are pinned in depends/packages/*.mk (signed tarball).
+RUN make -j"$(nproc)" -C depends HOST="$(cat /host)" \
         NO_QT=1 NO_WALLET=1 NO_ZMQ=1 NO_UPNP=1 NO_NATPMP=1 NO_MULTIPROCESS=1
 
-# Build. Bitcoin Core >= 29 uses CMake only (no autotools `configure` in the
-# tarball); <= 28 had autotools and no CMakeLists.txt. Detect which tree we
-# have so a version bump cannot break this step silently.
-# The depends toolchain file supplies compilers and the static boost/libevent.
 RUN set -eux; \
-    mkdir -p /out/bin /out/lib; \
-    if [ -f CMakeLists.txt ]; then \
-        cmake -B build \
-            -DCMAKE_TOOLCHAIN_FILE="depends/${HOST}/toolchain.cmake" \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DENABLE_WALLET=OFF -DENABLE_ZMQ=OFF -DENABLE_IPC=OFF \
-            -DBUILD_TESTS=OFF -DBUILD_BENCH=OFF -DBUILD_FUZZ_BINARY=OFF; \
-        cmake --build build -j"$(nproc)" --target bitcoind bitcoin-cli; \
-        cp build/bin/bitcoind build/bin/bitcoin-cli /out/bin/; \
-    else \
-        ./configure --prefix="/src/depends/${HOST}" \
-            --disable-wallet --disable-gui --disable-zmq --disable-tests \
-            --disable-bench --disable-man --with-libs=no; \
-        make -j"$(nproc)"; \
-        cp src/bitcoind src/bitcoin-cli /out/bin/; \
-    fi; \
+    host="$(cat /host)"; \
+    cmake -B build \
+        -DCMAKE_TOOLCHAIN_FILE="depends/${host}/toolchain.cmake" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DENABLE_WALLET=OFF -DENABLE_ZMQ=OFF -DENABLE_IPC=OFF \
+        -DBUILD_TESTS=OFF -DBUILD_BENCH=OFF -DBUILD_FUZZ_BINARY=OFF; \
+    cmake --build build -j"$(nproc)" --target bitcoind bitcoin-cli; \
+    mkdir -p /out/bin; \
+    cp build/bin/bitcoind build/bin/bitcoin-cli /out/bin/
+
+# Sanity/hardening checks (fail the build instead of shipping a weak binary):
+# PIE, full RELRO, non-executable stack, stack protector, fully static
+# boost/libevent.
+RUN set -eux; \
+    for b in /out/bin/bitcoind /out/bin/bitcoin-cli; do \
+      readelf -h "$b" | grep -q 'Type:.*DYN'                     || { echo "$b: not PIE" >&2; exit 1; }; \
+      readelf -lW "$b" | grep -q 'GNU_RELRO'                     || { echo "$b: no RELRO" >&2; exit 1; }; \
+      readelf -dW "$b" | grep -Eq 'BIND_NOW|FLAGS.*NOW'          || { echo "$b: no BIND_NOW" >&2; exit 1; }; \
+      readelf -lW "$b" | grep 'GNU_STACK' | grep -qv 'RWE'       || { echo "$b: exec stack" >&2; exit 1; }; \
+      readelf -sW "$b" | grep -q '__stack_chk_fail'              || { echo "$b: no stack protector" >&2; exit 1; }; \
+      if ldd "$b" | grep -Ei 'boost|libevent'; then echo "$b: unexpected dynamic libs" >&2; exit 1; fi; \
+    done; \
     strip /out/bin/bitcoind /out/bin/bitcoin-cli; \
-    ldd /out/bin/bitcoind | awk '/boost|libevent/ {print $$3}' \
-        | xargs -r -I{} cp -L {} /out/lib/
+    /out/bin/bitcoind -version | head -n1 | grep -q "v${BITCOIN_VERSION}"
 
 FROM ${BASE}
 
 RUN set -eux; \
     addgroup --system --gid 1000 bitcoin; \
-    adduser --system --uid 1000 --ingroup bitcoin --home /home/bitcoin --shell /bin/sh bitcoin; \
-    install -d -o 1000 -g 1000 /home/bitcoin /home/bitcoin/.bitcoin /opt/bitcoind/lib
+    adduser --system --uid 1000 --ingroup bitcoin --home /home/bitcoin \
+        --shell /usr/sbin/nologin bitcoin; \
+    install -d -o 1000 -g 1000 /home/bitcoin; \
+    install -d -o 1000 -g 1000 -m 0750 /home/bitcoin/.bitcoin
 
-COPY --from=build /out/bin/bitcoind /usr/local/bin/bitcoind
-COPY --from=build /out/bin/bitcoin-cli /usr/local/bin/bitcoin-cli
-COPY --from=build /out/lib/ /opt/bitcoind/lib/
-ENV LD_LIBRARY_PATH=/opt/bitcoind/lib
+COPY --from=build /out/bin/bitcoind /out/bin/bitcoin-cli /usr/local/bin/
 
 USER bitcoin
 WORKDIR /home/bitcoin
-# declared so a fresh volume inherits the 1000:1000 ownership set above
+# Declared so a fresh named volume inherits the 1000:1000 ownership above.
+# Always mount a named volume here; otherwise Docker silently creates an
+# anonymous one and the chain data is lost on `docker compose down`.
 VOLUME /home/bitcoin/.bitcoin
 EXPOSE 8332 8333
+# bitcoind flushes its UTXO cache on SIGTERM; give it time in compose with
+# stop_grace_period (the 10s default is far too short).
+STOPSIGNAL SIGTERM
 ENTRYPOINT ["bitcoind"]
 CMD ["-printtoconsole"]
