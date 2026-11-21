@@ -29,6 +29,11 @@ services:
       build: ./tor
       container_name: tor
       restart: always
+      cap_drop: [ALL]
+      # entrypoint chowns the data dir, tor drops from root to its own user
+      cap_add: [CHOWN, DAC_OVERRIDE, SETGID, SETUID]
+      security_opt: ["no-new-privileges:true"]
+      pids_limit: 100
       # Share bitcoind's network namespace so SOCKS (9050) and control (9051)
       # listen on 127.0.0.1 only: reachable by bitcoind, not by other containers.
       network_mode: "service:bitcoin"
