@@ -11,9 +11,10 @@ services:
         networks:
           - core
         cap_drop: [ALL]
-        # entrypoint starts as root and drops to the bitcoin user (gosu), and may
-        # chown the data dir, so those caps come back even with the rest dropped
-        cap_add: [CHOWN, DAC_OVERRIDE, SETGID, SETUID]
+        # entrypoint starts as root and drops to the bitcoin user (gosu), and
+        # chowns/chmods the data dir (chmod needs FOWNER once the dir belongs
+        # to bitcoin), so those caps come back even with the rest dropped
+        cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
         security_opt: ["no-new-privileges:true"]
         pids_limit: 300
         # no mem_limit: initial block sync and snapshot import have RAM spikes
