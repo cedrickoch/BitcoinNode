@@ -10,7 +10,7 @@ services:
         command:
           - "-printtoconsole"
           - "-rpcbind=0.0.0.0"
-          - "-rpcallowip=0.0.0.0/0"
+          - "-rpcallowip=172.28.0.0/24" # Core network only (subnet defined in docker-compose.yml)
           - "-txindex=1"
           - "-proxy=127.0.0.1:9050"    # All outbound P2P through Tor
           - "-onion=127.0.0.1:9050"
