@@ -30,8 +30,9 @@ services:
       container_name: tor
       restart: always
       cap_drop: [ALL]
-      # entrypoint chowns the data dir, tor drops from root to its own user
-      cap_add: [CHOWN, DAC_OVERRIDE, SETGID, SETUID]
+      # entrypoint chowns and chmods the data dir (chmod needs FOWNER once the
+      # dir belongs to tor), tor drops from root to its own user
+      cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
       security_opt: ["no-new-privileges:true"]
       pids_limit: 100
       # Share bitcoind's network namespace so SOCKS (9050) and control (9051)
