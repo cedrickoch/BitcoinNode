@@ -1,7 +1,7 @@
 
 services:
     bitcoin:
-        image: bitcoin/bitcoin:32.1
+        image: 4324363/bitcoind:32.1
         container_name: bitcoind
         # bitcoind flushes its UTXO cache on shutdown; the 10s default SIGKILLs
         # it mid-flush and forces a long reindex on the next start
