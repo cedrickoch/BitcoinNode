@@ -23,6 +23,7 @@ services:
           - "-torpassword=${TOR_CONTROL_PASSWORD:?Set TOR_CONTROL_PASSWORD in .env}"
           - "-discover=0"              # Don't advertise local/public IPs
           - "-dnsseed=0"               # No clearnet DNS lookups, use built-in onion seeds
+          - "-rest=1"
 
     tor:
       build: ./tor
