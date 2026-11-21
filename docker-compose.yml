@@ -206,6 +206,9 @@ services:
       networks:
         - core
       cap_drop: [ALL]
+      # root must read the mode-0600 bitcoind cookie (owned by uid 1000);
+      # DAC_READ_SEARCH grants read-only bypass, app-dir writes stay owner-based
+      cap_add: [DAC_READ_SEARCH]
       security_opt: ["no-new-privileges:true"]
       pids_limit: 200
       restart: always
