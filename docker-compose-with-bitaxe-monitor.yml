@@ -5,13 +5,18 @@ services:
         container_name: bitcoind
         volumes:
             - bitcoin_data:/data/.bitcoin
-        command: ["-printtoconsole", "-rpcbind=0.0.0.0", "-rpcallowip=0.0.0.0/0", "-txindex=1"]
+        networks:
+          - core
+        command: ["-printtoconsole", "-rpcbind=0.0.0.0", "-rpcallowip=172.28.0.0/24", "-txindex=1"]
 
     electrs:
       image: 4324363/electrs:v0.10.8-arm64
       container_name: electrs
       user: "root"
       command: ["/usr/bin/electrs"] 
+      networks:
+        - default
+        - core
       ports:
         - "50001:50001" # For the electrs API on mainnet
       volumes:
@@ -59,6 +64,9 @@ services:
         MEMPOOL_POLL_RATE_MS: "20000" # Optimized CPU load from 100% to 20%
       image: mempool/backend:latest
       user: "root"
+      networks:
+        - default
+        - core
       restart: on-failure
       stop_grace_period: 1m
       command: "./wait-for-it.sh db:3306 --timeout=720 --strict -- ./start.sh"
@@ -127,6 +135,14 @@ services:
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+
+networks:
+  core:
+    # Fixed subnet so bitcoind's -rpcallowip can be pinned to the core network.
+    # Only services listed on this network can reach the bitcoind RPC/P2P ports.
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
 
 volumes:
     bitcoin_data:

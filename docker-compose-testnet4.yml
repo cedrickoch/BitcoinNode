@@ -7,13 +7,18 @@ services:
         environment:
           - UID=1000
           - GID=1000
-        command: ["-printtoconsole", "-testnet4", "-rpcbind=0.0.0.0","-rpcport=48332", "-rpcallowip=172.0.0.0/8", "-txindex=1"]
+        networks:
+          - core
+        command: ["-printtoconsole", "-testnet4", "-rpcbind=0.0.0.0","-rpcport=48332", "-rpcallowip=172.28.0.0/24", "-txindex=1"]
 
     electrs:
       image: 4324363/electrs:v0.10.8-arm64
       container_name: electrs
       user: "root"
       command: ["/usr/bin/electrs", "--network=testnet4"] # Already set in testnet mode
+      networks:
+        - default
+        - core
       ports:
         - "40001:40001" # For the electrs RPC API on testnet4
         - "44224:44224" # Promeetheus metrics
@@ -63,6 +68,9 @@ services:
       image: mempool/backend:latest
       container_name: mempool-backend
       user: "root"
+      networks:
+        - default
+        - core
       restart: on-failure
       stop_grace_period: 1m
       command: "./wait-for-it.sh db:3306 --timeout=720 --strict -- ./start.sh"
@@ -122,6 +130,14 @@ services:
       - /var/run:/var/run:rw
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+
+networks:
+  core:
+    # Fixed subnet so bitcoind's -rpcallowip can be pinned to the core network.
+    # Only services listed on this network can reach the bitcoind RPC/P2P ports.
+    ipam:
+      config:
+        - subnet: 172.28.0.0/24
 
 volumes:
     bitcoin_data:

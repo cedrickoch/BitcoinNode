@@ -4,7 +4,8 @@ LOGFILE=/home/bitcoin/.bitcoin/debug.log
 SEARCH_TEXT="00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048"
 
 echo "Import starting"
-bitcoind -daemon -printtoconsole -rpcbind=0.0.0.0 -rpcallowip=0.0.0.0/0 -datadir=/home/bitcoin/.bitcoin
+# RPC defaults are loopback-only; nothing outside this container needs RPC during import
+bitcoind -daemon -printtoconsole -datadir=/home/bitcoin/.bitcoin
 # Wait for the block headers to be downloaded
 while true; do
     # Check if the text appears in the log file

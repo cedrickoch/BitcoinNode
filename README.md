@@ -83,16 +83,17 @@ Step by step instructions:
 1. Install Raspberry Pi OS ( https://www.raspberrypi.com/software/ )
 2. Open a terminal session to the Raspberry Pi
 3. Update the OS to the latest version ( sudo apt-get update and sudo apt-get upgrade -y )
-4. Install pre-requisites ( sudo apt-get install docker docker-compose git -y )
-5. Forcing PCI Express Gen 3.0 ( sudo nano /boot/firmware/config.txt and add the lines dtparam=pciex1 and dtparam=pciex1_gen=3 to the end of the file )
-6. Reboot ( sudo reboot )
-7. Open a terminal session to the Raspberry Pi
-8. Change to the installation directory ( e.g. cd /home/bitcoin )
-9. Clone the repository ( git clone https://github.com/cedrickoch/BitcoinNode.git )
-10. Change to the BitcoinNode folder ( cd BitcoinNode )
-11. Download the bitcoin data snapshot ( curl https://www.lopp.net/download/utxo-snapshot-height-840000.dat?ref=blog.lopp.net --output utxo-snapshot-height-840000.dat )
-12. Import the bitcoin snapshot. It will take a while ( docker-compose -f docker-compose-import.yml up )
-13. Start the bitcoin node ( docker-compose up -d )
+4. Install docker as described at https://docs.docker.com/engine/install/debian/
+5. Install pre-requisites ( sudo apt-get install git -y )
+6. Forcing PCI Express Gen 3.0 ( sudo nano /boot/firmware/config.txt and add the lines dtparam=pciex1 and dtparam=pciex1_gen=3 to the end of the file )
+7. Reboot ( sudo reboot )
+8. Open a terminal session to the Raspberry Pi
+9. Change to the installation directory ( e.g. cd /home/bitcoin )
+10. Clone the repository ( git clone https://github.com/cedrickoch/BitcoinNode.git )
+11. Change to the BitcoinNode folder ( cd BitcoinNode )
+12. Download the bitcoin data snapshot ( curl https://www.lopp.net/download/utxo-snapshot-height-840000.dat?ref=blog.lopp.net --output utxo-snapshot-height-840000.dat )
+13. Import the bitcoin snapshot. It will take a while ( docker-compose -f docker-compose-import.yml up )
+14. Start the bitcoin node ( docker-compose up -d )
 
 ## Private mode (Tor)
 
