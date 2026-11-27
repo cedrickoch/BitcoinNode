@@ -30,6 +30,14 @@ else
 
     echo "Downloading bitcoin chain snapshot..."
     curl https://www.lopp.net/download/utxo-snapshot-height-840000.dat?ref=blog.lopp.net --output utxo-snapshot-height-840000.dat
+
+    # Credentials must exist before any container is created: mariadb only honours
+    # MYSQL_PASSWORD on first initialisation of the volume.
+    ./scripts/generate-secrets.sh
+
     echo "Importing bitcoin chain snapshot..."
     $COMPOSE -f docker-compose-import.yml up
+
+    echo "Import finished. Verify the snapshot before trusting it (see docs/trust.md)."
+    echo "Then start the node with: docker compose up -d"
 fi

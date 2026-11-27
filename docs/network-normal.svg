@@ -66,7 +66,7 @@
           <line class="edge" x1="410" y1="214" x2="468" y2="214" marker-end="url(#a-muted)"/>
           <path class="edge" d="M410,304 L440,304 L440,232 L468,232" marker-end="url(#a-muted)"/>
           <text class="small" x="550" y="276" text-anchor="middle">internal only:</text>
-          <text class="small mono" x="550" y="292" text-anchor="middle">RPC 8332 · P2P 8333</text>
+          <text class="small mono" x="550" y="292" text-anchor="middle">RPC 8332 (loopback+core)</text><text class="small mono" x="550" y="308" text-anchor="middle">P2P 8333 · not published</text><text class="small" x="550" y="324" text-anchor="middle">core / explorer / default</text>
 
           <!-- Router -->
           <rect class="box" x="700" y="180" width="140" height="68" rx="6"/>

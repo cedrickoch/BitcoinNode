@@ -11,8 +11,15 @@ services:
         # the import runs /import.sh as the image user, so no root entrypoint
         # dance and no capabilities are needed here
         cap_drop: [ALL]
-        # parity:allow cap_add
+        # parity:allow cap_add user read_only healthcheck
+        # one-shot: /import.sh exits when the import finishes, so a healthcheck
+        # would only ever flap; `docker compose up` returning is the signal
         security_opt: ["no-new-privileges:true"]
+        logging: # bounded so an unattended run cannot fill the SD card
+          driver: json-file
+          options:
+            max-size: 10m
+            max-file: "3"
         pids_limit: 300
         entrypoint: /import.sh
 

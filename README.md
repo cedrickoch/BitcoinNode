@@ -42,21 +42,19 @@ The node is composed of several Docker containers defined in `docker-compose.yml
 
 ### External Ports
 
-The following ports are exposed to the host and can be reached from other devices on your network:
+The canonical table, with the authentication status of every port and the ports
+that stay container-only, is **[docs/exposure.md](docs/exposure.md)**. In short,
+the default mode publishes **80** (explorer), **3000** (dashboards), **3333** and
+**3334** (stratum), **50001** (Electrum) and **8501** (address tracker). None of
+them carry authentication, so treat everything on your LAN as able to open them.
+The test network publishes **40001**, **44224** and **9090** instead and drops the
+miner and tracker ports; the import mode publishes nothing.
 
-| Port | Service | Purpose |
-|------|---------|---------|
-| **80** | web | Mempool block explorer UI. Open in a browser to explore blocks, transactions, and mempool state. |
-| **3000** | grafana | Grafana dashboards. Open in a browser to view node and Bitaxe miner metrics. |
-| **3333** | public-pool | Stratum mining port. Point your Bitaxe or other miner here (e.g. `stratum+tcp://<node-ip>:3333`). |
-| **3334** | public-pool | Secondary Stratum port (e.g. for a different difficulty or miner group). |
-| **50001** | electrs | Electrum server port. Connect your wallet software (e.g. Sparrow, BlueWallet, Electrum) to `<node-ip>:50001` to use your own node for transaction lookups and broadcasting. |
+The node's RPC port is **not** published any more: it is bound to loopback and to
+the node's fixed address on the internal `core` network, so only electrs, the
+explorer API, the metrics exporter and the miner pool can reach it.
 
-The table describes the default mode. Test network mode publishes a different
-set: **40001** (electrs) and **44224** (electrs metrics) replace 50001, and
-**9090** (Prometheus UI) is exposed directly. It does not publish the mining
-ports 3333/3334 nor 8501, since it has no miner or analytics service. The import
-mode publishes nothing, being one-shot.
+**Adding a port means adding a row** to `docs/exposure.md` in the same change.
 
 ### Connecting external devices
 
@@ -97,9 +95,69 @@ Step by step instructions:
 9. Change to the installation directory ( e.g. cd /home/bitcoin )
 10. Clone the repository ( git clone https://github.com/cedrickoch/BitcoinNode.git )
 11. Change to the BitcoinNode folder ( cd BitcoinNode )
-12. Download the bitcoin data snapshot ( curl https://www.lopp.net/download/utxo-snapshot-height-840000.dat?ref=blog.lopp.net --output utxo-snapshot-height-840000.dat )
-13. Import the bitcoin snapshot. It will take a while ( docker compose -f docker-compose-import.yml up )
-14. Start the bitcoin node ( docker compose up -d )
+12. Create `.env` and let it fill the credentials ( ./scripts/generate-secrets.sh )
+13. Download the bitcoin data snapshot ( curl https://www.lopp.net/download/utxo-snapshot-height-840000.dat?ref=blog.lopp.net --output utxo-snapshot-height-840000.dat )
+14. Import the bitcoin snapshot. It will take a while ( docker compose -f docker-compose-import.yml up )
+15. Verify the snapshot before trusting it ( see [docs/trust.md](docs/trust.md) )
+16. Start the bitcoin node ( docker compose up -d )
+
+## Credentials
+
+Every credential lives in `.env`, which is gitignored. Nothing uses a password
+that is written in the repository.
+
+```sh
+cp .env.example .env
+./scripts/generate-secrets.sh        # fills every blank value with a random one
+```
+
+The script is safe to re-run: it never overwrites a value you set, and it prints
+one warning per value it had to generate. Compose references each secret as
+`${VAR:?…}`, so a blank value stops the start instead of quietly falling back.
+
+**Rotating a database password** keeps your explorer data — it changes the grant
+in the running database and `.env` together, then restarts the consumers:
+
+```sh
+./scripts/rotate-db-password.sh app      # explorer database user
+./scripts/rotate-db-password.sh root     # database superuser
+```
+
+**Backups:** `.env` carries the credentials, so back it up with the volumes. A
+restored data volume without `.env` comes up with a password the database does
+not know.
+
+The Tor control password is used only in private mode; rotate it by editing
+`.env` and restarting the private mode stack.
+
+## Checking the hardening posture
+
+```sh
+./scripts/audit-hardening.sh          # every service, every baseline key
+```
+
+It prints `ok`, `deviated` (a row in `docs/hardening-baseline.md` explains it),
+`DRIFT` (undocumented — fix it), or `stale-deviation` (a row that no longer
+applies — remove it). Exit code is non-zero with any drift.
+
+The baseline itself, with the reasons for every accepted deviation, is
+`docs/hardening-baseline.md`. Nothing may deviate without a row there.
+
+## Updating images deliberately
+
+Tags are pinned to exact versions, so nothing changes under you. To see how old
+they are, and to refresh on purpose:
+
+```sh
+./scripts/refresh-images.sh          # report age, flag anything unpinned
+./scripts/refresh-images.sh --pull   # actually refresh
+docker compose up -d                 # apply
+./scripts/security-status.sh         # confirm it still works
+```
+
+A refresh mid-sync is safe but re-downloads. What each image rests on is recorded
+in [docs/trust.md](docs/trust.md), which is also where the snapshot verification
+step lives (see "Run modes" → snapshot import).
 
 ## Run modes
 
@@ -109,9 +167,11 @@ are not stacked on the default file, because each one already defines the whole
 stack. Always run one mode at a time; two at once share the same volume names
 and will reconfigure each other.
 
-Run `scripts/check-overlay-parity.sh` after changing any compose file. It
-verifies every overlay still carries the hardening baseline of the default mode
-and exits non-zero on drift. See `docs/hardening-baseline.md`.
+Run `scripts/check-compose-syntax.sh` and `scripts/check-overlay-parity.sh` after
+changing any compose file. The first catches quote/flow errors that would
+otherwise only surface at `up` time (`must be a string`). The second verifies
+every overlay still carries the hardening baseline of the default mode and exits
+non-zero on drift; see `docs/hardening-baseline.md`.
 
 | Mode | File | Purpose |
 | --- | --- | --- |
@@ -146,6 +206,16 @@ each time you switch.
 One-shot mode that loads the snapshot you downloaded into `bitcoin_data` so the
 first mainnet sync is short. It has no long-running services of its own and is
 not left running.
+
+**Verify the import before trusting it.** A download proves nothing on its own;
+the network's accumulated work does. Once the node has caught up, compare the
+block hash at the snapshot height with the value in [docs/trust.md](docs/trust.md):
+
+```sh
+docker exec -u bitcoin bitcoind bitcoin-cli getblockhash 840000
+```
+
+A mismatch means delete the volume and re-import or re-sync.
 
 ```sh
 docker compose -f docker-compose-import.yml up         # run the import
@@ -224,5 +294,46 @@ Verify that private mode is active:
 
 ## Update docker images
 
-1. Get the latest images ( docker-compose pull )
-2. Start the latest iamges ( docker-compose up -d )
+Tags are pinned, so use the deliberate path instead of a blind pull:
+
+```sh
+./scripts/refresh-images.sh --pull
+docker compose up -d
+./scripts/security-status.sh
+```
+
+## Health and troubleshooting
+
+```sh
+./scripts/security-status.sh
+```
+
+One line per service with `healthy`, `starting`, `unhealthy` or `no-healthcheck`,
+then `OVERALL`. Non-zero exit unless everything is healthy.
+
+First steps per symptom:
+
+- **`bitcoin` unhealthy** — it reports healthy only once it is out of initial
+  block download. Check progress: `docker compose exec bitcoin bitcoin-cli getblockchaininfo`.
+  A stalled node with peers connected is usually disk or clock; check
+  `docker compose logs --tail 50 bitcoin` and `df -h`.
+- **`electrs` unhealthy** — it needs bitcoind healthy first. If bitcoind is fine,
+  read `docker compose logs --tail 50 electrs`; a corrupted index means deleting
+  the `electrs_data` volume and letting it re-index.
+- **`api` / `web` unhealthy** — almost always `db`. Check `docker compose logs --tail 50 db`,
+  and confirm `.env` still holds the credentials the database was initialised with.
+- **`db` unhealthy** — disk full or a credential mismatch after a hand edit.
+  `scripts/rotate-db-password.sh app` re-syncs password and grant in one step.
+- **`tor` unhealthy** — private mode only. Check `docker logs bitcoind | grep -i tor`;
+  a missing or wrong `TOR_CONTROL_PASSWORD` is the usual cause.
+- **Many services unhealthy at once** — suspect the host (disk, memory) before the
+  stack: `df -h`, `free -h`, `docker compose ps`.
+
+Logs are capped at 10 MB × 3 files per service, so a long-running problem will
+not fill the card.
+
+## Checking exposure
+
+The full port list with authentication status is [docs/exposure.md](docs/exposure.md).
+If a port you do not recognise answers, `docker compose ps` plus that file will
+name it.

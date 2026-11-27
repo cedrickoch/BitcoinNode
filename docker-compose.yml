@@ -12,23 +12,50 @@ services:
           - UID=1000
           - GID=1000
         networks:
-          - core
+          core:
+            # fixed address so bitcoind can bind RPC to this interface only
+            ipv4_address: 172.28.0.2
         cap_drop: [ALL]
         # entrypoint starts as root and drops to the bitcoin user (gosu), and
         # chowns/chmods the data dir (chmod needs FOWNER once the dir belongs
         # to bitcoin), so those caps come back even with the rest dropped
         cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
         security_opt: ["no-new-privileges:true"]
+        logging: # bounded so an unattended run cannot fill the SD card
+          driver: json-file
+          options:
+            max-size: 10m
+            max-file: "3"
+        healthcheck: # functional probe, see contracts/health-probes.md
+          test: ["CMD-SHELL", "bitcoin-cli getblockchaininfo | grep -q 'initialblockdownload\": false'"]
+          interval: 30s
+          timeout: 10s
+          retries: 3
+          start_period: 300s
         pids_limit: 300
         # no mem_limit: initial block sync and snapshot import have RAM spikes
-        command: ["-printtoconsole", "-rpcbind=0.0.0.0", "-rpcallowip=172.28.0.0/24", "-txindex=1"]
+        command: ["-printtoconsole", "-rpcbind=127.0.0.1", "-rpcbind=172.28.0.2", "-rpcallowip=127.0.0.1", "-rpcallowip=172.28.0.0/24", "-txindex=1"]
 
     electrs:
       image: 4324363/electrs:v0.12.0-arm64
       container_name: electrs
       user: "1000:1000" # not root; reads the cookie file owned by uid 1000
       cap_drop: [ALL]
+      read_only: true
+      tmpfs:
+        - /tmp
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
+      healthcheck: # functional probe, see contracts/health-probes.md
+        test: ["CMD-SHELL", "wget -qO- localhost:4224/ >/dev/null"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 300s
       pids_limit: 300
       # no mem_limit: initial indexing has big RAM spikes
       command: ["/usr/bin/electrs"] 
@@ -54,7 +81,8 @@ services:
           - ELECTRS_MONITORING_ADDR=electrs:4224
           - ELECTRS_PARALLELISM=1
       depends_on:
-        - bitcoin
+        bitcoin:
+          condition: service_healthy
 
     web:
       environment:
@@ -63,11 +91,31 @@ services:
       image: mempool/frontend:v3.3.1
       user: "1000:1000"
       cap_drop: [ALL]
+      read_only: true
+      tmpfs:
+        - /var/cache/nginx
+        - /var/run
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
+      healthcheck: # functional probe, see contracts/health-probes.md
+        test: ["CMD-SHELL", "wget -qO- localhost:8080/ >/dev/null"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 120s
       pids_limit: 100
       restart: on-failure
       stop_grace_period: 1m
       command: "./wait-for db:3306 --timeout=720 -- nginx -g 'daemon off;'"
+      depends_on:
+        db:
+          condition: service_healthy
+      networks:
+        - explorer
       ports:
         - "80:8080"
 
@@ -85,20 +133,37 @@ services:
         DATABASE_HOST: "db"
         DATABASE_DATABASE: "mempool"
         DATABASE_USERNAME: "mempool"
-        DATABASE_PASSWORD: "mempool"
+        DATABASE_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env (scripts/generate-secrets.sh)}
         STATISTICS_ENABLED: "true"
         MEMPOOL_POLL_RATE_MS: "20000" # Optimized CPU load from 100% to 20%
       image: mempool/backend:v3.3.1
       user: "1000:1000" # not root; reads the cookie file owned by uid 1000
       networks:
-        - default
         - core
+        - explorer
       cap_drop: [ALL]
+      read_only: true
+      tmpfs:
+        - /tmp
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
+      healthcheck: # functional probe, see contracts/health-probes.md
+        test: ["CMD-SHELL", "wget -qO- localhost:8999/api/v1/blocks >/dev/null"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 300s
       pids_limit: 300
       restart: on-failure
       stop_grace_period: 1m
       command: "./wait-for-it.sh db:3306 --timeout=720 --strict -- ./start.sh"
+      depends_on:
+        db:
+          condition: service_healthy
       volumes:
         - mempool_data:/backend/cache
         - bitcoin_data:/home/bitcoin/.bitcoin:ro
@@ -108,25 +173,51 @@ services:
       environment:
         MYSQL_DATABASE: "mempool"
         MYSQL_USER: "mempool"
-        MYSQL_PASSWORD: "mempool"
-        MYSQL_ROOT_PASSWORD: "admin"
-      image: mariadb
+        # from .env; fail closed rather than fall back to a known string
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env (scripts/generate-secrets.sh)}
+        MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env (scripts/generate-secrets.sh)}
+      # pinned exact version; trust basis and refresh trigger in docs/trust.md
+      image: mariadb:11.4
       user: "root" # entrypoint needs root: it chowns the data dir and drops to the mysql user
       cap_drop: [ALL]
       cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
+      healthcheck: # functional probe, see contracts/health-probes.md
+        test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 120s
       pids_limit: 300
       restart: on-failure
       stop_grace_period: 1m
+      networks:
+        - explorer # explorer plane only: nothing here may reach the node's RPC
       volumes:
         - mempool_db:/var/lib/mysql
 
     grafana:
-      image: grafana/grafana:latest
+      image: grafana/grafana:11.3.1
       cap_drop: [ALL]
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
       read_only: true
       tmpfs: [/tmp]
+      healthcheck: # functional probe, see contracts/health-probes.md
+        test: ["CMD-SHELL", "wget -qO- localhost:3000/api/health >/dev/null"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 120s
       pids_limit: 200
       environment:
         GF_USERS_ALLOW_SIGN_UP: "false"
@@ -137,9 +228,25 @@ services:
         - grafana_data:/var/lib/grafana
 
     prometheus:
-      image: prom/prometheus:latest
+      image: prom/prometheus:v3.1.0
+      # non-root `nobody`; the image runs as UID 65534 for prometheus and json_exporter
+      user: "65534:65534"
       cap_drop: [ALL]
+      read_only: true
+      tmpfs:
+        - /tmp
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
+      healthcheck: # functional probe, see contracts/health-probes.md
+        test: ["CMD-SHELL", "wget -qO- localhost:9090/-/ready >/dev/null"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 120s
       pids_limit: 200
       restart: always
       volumes:
@@ -148,12 +255,25 @@ services:
       command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       depends_on:
-        - node_exporter
+        node_exporter:
+          condition: service_healthy
 
     node_exporter:
-      image: prom/node-exporter:latest
+      image: prom/node-exporter:v1.8.2
       cap_drop: [ALL]
+      read_only: true
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
+      healthcheck: # functional probe, see contracts/health-probes.md
+        test: ["CMD-SHELL", "wget -qO- localhost:9100/metrics >/dev/null"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 120s
       pids_limit: 100
       restart: always
       volumes:
@@ -162,9 +282,23 @@ services:
         - /:/rootfs:ro
 
     json_exporter:
-      image: quay.io/prometheuscommunity/json-exporter:latest
+      image: quay.io/prometheuscommunity/json-exporter:v0.6.0
+      # non-root `nobody`; the image runs as UID 65534 for prometheus and json_exporter
+      user: "65534:65534"
       cap_drop: [ALL]
+      read_only: true
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
+      healthcheck: # functional probe, see contracts/health-probes.md
+        test: ["CMD-SHELL", "wget -qO- localhost:7979/-/healthy >/dev/null"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 120s
       pids_limit: 50
       restart: always
       command:
@@ -173,13 +307,25 @@ services:
         - ./bitaxe/json_exporter/config.yml:/config.yml
 
     bitcoind_exporter:
-      image: ghcr.io/primexz/bitcoind-exporter:latest
+      image: ghcr.io/primexz/bitcoind-exporter:v0.5.0
       networks:
         - default
         - core
       user: "1000:1000" # to read the bitcoind cookie file (owned by uid 1000)
       cap_drop: [ALL]
+      read_only: true
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
+      healthcheck: # functional probe, see contracts/health-probes.md
+        test: ["CMD-SHELL", "wget -qO- localhost:9332/metrics >/dev/null"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 120s
       pids_limit: 100
       restart: always
       environment:
@@ -191,13 +337,26 @@ services:
       volumes:
         - bitcoin_data:/home/bitcoin/.bitcoin:ro
       depends_on:
-        - bitcoin
+        bitcoin:
+          condition: service_healthy
 
     cadvisor:
-      image: gcr.io/cadvisor/cadvisor:latest
+      image: gcr.io/cadvisor/cadvisor:v0.49.1
       container_name: cadvisor
       cap_drop: [ALL]
+      read_only: true
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
+      healthcheck: # functional probe, see contracts/health-probes.md
+        test: ["CMD", "/usr/bin/cadvisor", "-h"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 120s
       pids_limit: 200
       volumes:
       - /:/rootfs:ro
@@ -206,7 +365,7 @@ services:
       - /var/lib/docker/:/var/lib/docker:ro
 
     public-pool:
-      image: 4324363/public-pool:arm64
+      image: 4324363/public-pool:v1.7-arm64
       networks:
         - core
       cap_drop: [ALL]
@@ -214,6 +373,17 @@ services:
       # DAC_READ_SEARCH grants read-only bypass, app-dir writes stay owner-based
       cap_add: [DAC_READ_SEARCH]
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
+      healthcheck: # functional probe, see contracts/health-probes.md
+        test: ["CMD-SHELL", "wget -qO- localhost:3334/ >/dev/null"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 120s
       pids_limit: 200
       restart: always
       volumes:
@@ -227,7 +397,21 @@ services:
       image: 4324363/btctrack:v1.4-arm64
       container_name: btctrack
       cap_drop: [ALL]
+      read_only: true
+      tmpfs:
+        - /tmp
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
+      healthcheck: # functional probe, see contracts/health-probes.md
+        test: ["CMD-SHELL", "wget -qO- localhost:8501/ >/dev/null"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 120s
       pids_limit: 200
       restart: unless-stopped
       ports:
@@ -251,6 +435,12 @@ networks:
     ipam:
       config:
         - subnet: 172.28.0.0/24
+  explorer:
+    # Explorer plane: web <-> api <-> db. No node RPC here, so a compromised
+    # front end cannot reach the node's control interface.
+    ipam:
+      config:
+        - subnet: 172.29.0.0/24
 
 volumes:
     bitcoin_data:

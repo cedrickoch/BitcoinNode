@@ -9,7 +9,10 @@ services:
     bitcoin:
         command:
           - "-printtoconsole"
-          - "-rpcbind=0.0.0.0"
+          - "-rpcbind=127.0.0.1"
+          - "-rpcbind=172.28.0.2"
+          # tor shares bitcoind's namespace, so loopback is required as well as the core subnet
+          - "-rpcallowip=127.0.0.1"
           - "-rpcallowip=172.28.0.0/24" # Core network only (subnet defined in docker-compose.yml)
           - "-txindex=1"
           - "-proxy=127.0.0.1:9050"    # All outbound P2P through Tor
@@ -33,12 +36,24 @@ services:
       cap_drop: [ALL]
       read_only: true
       security_opt: ["no-new-privileges:true"]
+      logging: # bounded so an unattended run cannot fill the SD card
+        driver: json-file
+        options:
+          max-size: 10m
+          max-file: "3"
       pids_limit: 100
+      healthcheck: # SOCKS must be accepting inside the shared namespace
+        test: ["CMD-SHELL", "nc -z 127.0.0.1 9050"]
+        interval: 10s
+        timeout: 5s
+        retries: 3
+        start_period: 60s
       # Share bitcoind's network namespace so SOCKS (9050) and control (9051)
       # listen on 127.0.0.1 only: reachable by bitcoind, not by other containers.
       network_mode: "service:bitcoin"
       depends_on:
-        - bitcoin
+        bitcoin:
+          condition: service_healthy
       environment:
         TOR_CONTROL_PASSWORD: ${TOR_CONTROL_PASSWORD:?Set TOR_CONTROL_PASSWORD in .env}
       volumes:
@@ -46,3 +61,6 @@ services:
 
 volumes:
     tor_data:
+
+# The private file stacks on docker-compose.yml, so the explorer plane, networks
+# and every hardening key are inherited. Nothing here needs to re-declare them.

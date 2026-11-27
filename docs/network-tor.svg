@@ -65,6 +65,7 @@
           <rect class="box" x="470" y="180" width="160" height="68" rx="6"/>
           <text x="550" y="210" text-anchor="middle" font-weight="600">bitcoind</text>
           <text class="small mono" x="550" y="230" text-anchor="middle">-onlynet=onion</text>
+          <text class="small mono" x="550" y="246" text-anchor="middle">RPC: loopback + core</text>
 
           <!-- Internal edges -->
           <path class="edge" d="M410,124 L440,124 L440,196 L468,196" marker-end="url(#b-muted)"/>
