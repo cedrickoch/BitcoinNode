@@ -1,21 +1,29 @@
 services:
     bitcoin:
-        image: bitcoin/bitcoin:31.0
+        image: 4324363/bitcoind:32.1
         container_name: bitcoind
         stop_grace_period: 5m # let bitcoind flush its UTXO cache
         volumes:
             - bitcoin_data:/home/bitcoin/.bitcoin
-        environment:
-          - UID=1000
-          - GID=1000
         networks:
           - core
+        cap_drop: [ALL]
+        # our image's entrypoint starts as root, chowns the data dir, then drops
+        # to the bitcoin user; those caps come back even with the rest dropped
+        cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+        security_opt: ["no-new-privileges:true"]
+        pids_limit: 300
+        # no mem_limit: initial block sync and snapshot import have RAM spikes
         command: ["-printtoconsole", "-testnet4", "-rpcbind=0.0.0.0","-rpcport=48332", "-rpcallowip=172.28.0.0/24", "-txindex=1"]
 
     electrs:
-      image: 4324363/electrs:v0.10.8-arm64
+      image: 4324363/electrs:v0.12.0-arm64
       container_name: electrs
-      user: "root"
+      user: "1000:1000" # not root; reads the cookie file owned by uid 1000
+      cap_drop: [ALL]
+      security_opt: ["no-new-privileges:true"]
+      pids_limit: 300
+      # no mem_limit: initial indexing has big RAM spikes
       command: ["/usr/bin/electrs", "--network=testnet4"] # Already set in testnet mode
       networks:
         - default
@@ -41,9 +49,12 @@ services:
       environment:
         FRONTEND_HTTP_PORT: "8080"
         BACKEND_MAINNET_HTTP_HOST: "api"
-      image: mempool/frontend:latest
+      image: mempool/frontend:v3.3.1
       container_name: mempool-frontend
       user: "1000:1000"
+      cap_drop: [ALL]
+      security_opt: ["no-new-privileges:true"]
+      pids_limit: 100
       restart: on-failure
       stop_grace_period: 1m
       command: "./wait-for db:3306 --timeout=720 -- nginx -g 'daemon off;'"
@@ -66,12 +77,15 @@ services:
         DATABASE_USERNAME: "mempool"
         DATABASE_PASSWORD: "mempool"
         STATISTICS_ENABLED: "true"
-      image: mempool/backend:latest
+      image: mempool/backend:v3.3.1
       container_name: mempool-backend
-      user: "root"
+      user: "1000:1000" # not root; reads the cookie file owned by uid 1000
       networks:
         - default
         - core
+      cap_drop: [ALL]
+      security_opt: ["no-new-privileges:true"]
+      pids_limit: 300
       restart: on-failure
       stop_grace_period: 1m
       command: "./wait-for-it.sh db:3306 --timeout=720 --strict -- ./start.sh"
@@ -86,9 +100,13 @@ services:
         MYSQL_USER: "mempool"
         MYSQL_PASSWORD: "mempool"
         MYSQL_ROOT_PASSWORD: "admin"
-      image: mariadb:10.5.21
+      image: mariadb
       container_name: mempool-db
-      user: "root"
+      user: "root" # entrypoint needs root: it chowns the data dir and drops to the mysql user
+      cap_drop: [ALL]
+      cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+      security_opt: ["no-new-privileges:true"]
+      pids_limit: 300
       restart: on-failure
       stop_grace_period: 1m
       volumes:
@@ -96,6 +114,11 @@ services:
 
     grafana:
       image: grafana/grafana:latest
+      cap_drop: [ALL]
+      security_opt: ["no-new-privileges:true"]
+      read_only: true
+      tmpfs: [/tmp]
+      pids_limit: 200
       restart: always
       ports:
         - 3000:3000
@@ -104,19 +127,25 @@ services:
 
     prometheus:
       image: prom/prometheus:latest
+      cap_drop: [ALL]
+      security_opt: ["no-new-privileges:true"]
+      pids_limit: 200
       restart: always
       ports:
         - 9090:9090
       volumes:
         - prometheus_data:/prometheus
         - ./prometheus/:/etc/prometheus/
-      command: 
+      command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       depends_on:
         - node_exporter
 
     node_exporter:
       image: prom/node-exporter:latest
+      cap_drop: [ALL]
+      security_opt: ["no-new-privileges:true"]
+      pids_limit: 100
       restart: always
       volumes:
         - /proc:/host/proc:ro
@@ -126,6 +155,9 @@ services:
     cadvisor:
       image: gcr.io/cadvisor/cadvisor:latest
       container_name: cadvisor
+      cap_drop: [ALL]
+      security_opt: ["no-new-privileges:true"]
+      pids_limit: 200
       volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro

@@ -52,6 +52,12 @@ The following ports are exposed to the host and can be reached from other device
 | **3334** | public-pool | Secondary Stratum port (e.g. for a different difficulty or miner group). |
 | **50001** | electrs | Electrum server port. Connect your wallet software (e.g. Sparrow, BlueWallet, Electrum) to `<node-ip>:50001` to use your own node for transaction lookups and broadcasting. |
 
+The table describes the default mode. Test network mode publishes a different
+set: **40001** (electrs) and **44224** (electrs metrics) replace 50001, and
+**9090** (Prometheus UI) is exposed directly. It does not publish the mining
+ports 3333/3334 nor 8501, since it has no miner or analytics service. The import
+mode publishes nothing, being one-shot.
+
 ### Connecting external devices
 
 **Wallet software** — To use your own node instead of a third-party server, configure your wallet's Electrum server setting to `<node-ip>:50001`. This works with wallets like Sparrow Wallet, Electrum, and BlueWallet. Your transactions stay private because lookups never leave your network.
@@ -92,8 +98,86 @@ Step by step instructions:
 10. Clone the repository ( git clone https://github.com/cedrickoch/BitcoinNode.git )
 11. Change to the BitcoinNode folder ( cd BitcoinNode )
 12. Download the bitcoin data snapshot ( curl https://www.lopp.net/download/utxo-snapshot-height-840000.dat?ref=blog.lopp.net --output utxo-snapshot-height-840000.dat )
-13. Import the bitcoin snapshot. It will take a while ( docker-compose -f docker-compose-import.yml up )
-14. Start the bitcoin node ( docker-compose up -d )
+13. Import the bitcoin snapshot. It will take a while ( docker compose -f docker-compose-import.yml up )
+14. Start the bitcoin node ( docker compose up -d )
+
+## Run modes
+
+The stack has one default mode and three alternative modes. Each alternative
+lives in its own overlay file and is brought up **on its own** — the overlays
+are not stacked on the default file, because each one already defines the whole
+stack. Always run one mode at a time; two at once share the same volume names
+and will reconfigure each other.
+
+Run `scripts/check-overlay-parity.sh` after changing any compose file. It
+verifies every overlay still carries the hardening baseline of the default mode
+and exits non-zero on drift. See `docs/hardening-baseline.md`.
+
+| Mode | File | Purpose |
+| --- | --- | --- |
+| Default | `docker-compose.yml` | Mainnet node with explorer, monitoring and solo mining. |
+| Private | `docker-compose.private.yml` | Default mode (stacked) with all peer traffic routed through Tor. |
+| Test network | `docker-compose-testnet4.yml` | Throwaway testnet4 node for trying changes before mainnet. |
+| Snapshot import | `docker-compose-import.yml` | One-shot bootstrap that loads a UTXO snapshot into `bitcoin_data`. |
+
+### Default mode
+
+```sh
+docker compose up -d          # start
+docker compose down           # stop
+```
+
+### Test network (testnet4)
+
+Runs the same services as the default mode against testnet4, on ports 40001 and
+44224 instead of 50001. Use it to try a change without waiting for a mainnet sync.
+
+```sh
+docker compose -f docker-compose-testnet4.yml up -d    # start
+docker compose -f docker-compose-testnet4.yml down     # stop
+```
+
+Testnet4 data and mainnet data share the `bitcoin_data` volume, so switching
+between them re-syncs rather than merging the two chains. Expect a fresh sync
+each time you switch.
+
+### Snapshot import
+
+One-shot mode that loads the snapshot you downloaded into `bitcoin_data` so the
+first mainnet sync is short. It has no long-running services of its own and is
+not left running.
+
+```sh
+docker compose -f docker-compose-import.yml up         # run the import
+docker compose -f docker-compose-import.yml down       # clean up when it exits
+docker compose up -d                                   # then start the node normally
+```
+
+### Coming from the old Bitaxe monitoring overlay
+
+The former `docker-compose-with-bitaxe-monitor.yml` has been retired: miner
+monitoring is part of the default mode, so nothing is lost. To migrate:
+
+```sh
+docker compose -f docker-compose-with-bitaxe-monitor.yml down   # if still up
+docker compose up -d
+```
+
+The retired file stored chain data under `/data/.bitcoin`, while the current
+image uses `/home/bitcoin/.bitcoin`. You can either point the mount back at
+`/data/.bitcoin` in `docker-compose.yml` to keep the existing data, or re-sync
+from scratch. The `bitaxe` target in `prometheus/prometheus.yml` is unchanged and
+keeps being scraped by the default mode.
+
+### Reverting to the default mode
+
+```sh
+docker compose -f docker-compose-testnet4.yml down
+docker compose up -d
+```
+
+For private mode, see the next section: either comment the `COMPOSE_FILE=` line
+back out in `.env` or run `docker compose -f docker-compose.yml up -d`.
 
 ## Private mode (Tor)
 
